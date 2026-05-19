@@ -1,0 +1,16 @@
+schema: 1
+story: 'mvp-4.2'
+gate: CONCERNS
+status_reason: 'All 4 ACs met. DraftStore persist config correct, LegRow Tab/Enter navigation matches spec, PnLPreview LegFormData→Aposta mapping accurate. No component unit tests — consistent with Wave 2 pattern.'
+reviewer: 'Quinn'
+updated: '2026-05-18T16:00:00Z'
+top_issues:
+  - id: 'TEST-001'
+    severity: medium
+    finding: 'No unit tests for LegRow keyboard navigation or PnLPreview calculation path. Tab/Enter logic is UI-dependent and would require testing-library setup.'
+    suggested_action: 'Add component tests in Wave 6 test story using @testing-library/react (already in devDependencies).'
+  - id: 'MNT-001'
+    severity: low
+    finding: 'Select component spreads Controller field props onto native <select> — works correctly but creates an implicit coupling to HTMLSelectElement attribute shape.'
+    suggested_action: 'Acceptable for MVP. Wave 6 could add explicit type guard if Select API changes.'
+waiver: { active: false }

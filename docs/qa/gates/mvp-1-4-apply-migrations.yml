@@ -1,0 +1,19 @@
+schema: 1
+story: 'mvp-alpha-tracker/1.4'
+gate: CONCERNS
+status_reason: >
+  Schema 100% válido — smoke test 10/10 ALL CHECKS PASSED. Migrations aplicadas
+  em Docker local (workaround de firewall corporativo). Supabase Cloud será alvo
+  de deploy quando acessível; schema é idêntico.
+reviewer: Quinn
+updated: '2026-05-18T15:00:00Z'
+top_issues:
+  - id: 'REL-001'
+    severity: medium
+    finding: 'Migrations aplicadas em Docker local (localhost:5432), não no Supabase Cloud. O ambiente de produção real ainda não tem o schema aplicado.'
+    suggested_action: 'Aplicar supabase db push no Supabase Cloud quando acessar o PC de casa. Executar smoke_test.sql para validar.'
+  - id: 'DOC-001'
+    severity: low
+    finding: 'auth.uid() mockado localmente retorna NULL (sem JWT real). RLS policies não são testáveis com usuários reais no ambiente local.'
+    suggested_action: 'Testes de RLS com usuários reais ficam pendentes para o ambiente Supabase Cloud (Sprint 6.5).'
+waiver: { active: false }

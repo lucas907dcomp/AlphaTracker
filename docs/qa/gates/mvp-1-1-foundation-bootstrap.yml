@@ -1,0 +1,19 @@
+schema: 1
+story: 'mvp-alpha-tracker/1.1'
+gate: CONCERNS
+status_reason: >
+  Foundation implementada corretamente — typecheck limpo, aliases @/ configurados,
+  Tailwind + deps presentes. Uma issue de packaging (devDep incorreta) documentada
+  como dívida técnica não-bloqueante.
+reviewer: Quinn
+updated: '2026-05-18T15:00:00Z'
+top_issues:
+  - id: 'MNT-001'
+    severity: medium
+    finding: '@hookform/resolvers está em devDependencies mas é uma dependência de runtime (usada em zodResolver nos forms)'
+    suggested_action: 'Mover @hookform/resolvers para dependencies no package.json antes do deploy em produção'
+  - id: 'TEST-001'
+    severity: low
+    finding: 'AC-9 (npm run dev) verificado via tsc, mas servidor de desenvolvimento não foi iniciado e testado visualmente'
+    suggested_action: 'Verificar npm run dev ao iniciar o Wave 2 de desenvolvimento'
+waiver: { active: false }

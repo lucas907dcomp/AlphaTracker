@@ -1,0 +1,524 @@
+# =============================================================================
+# EPIC EXECUTION PLAN — AlphaTracker MVP
+# =============================================================================
+# Created:   2026-05-18
+# Author:    @pm (Morgan)
+# Spec:      docs/stories/mvp-alpha-tracker/spec/spec.md v2 (APPROVED)
+# Plan:      docs/stories/mvp-alpha-tracker/plan/implementation.yaml
+# Template:  epic-orchestration
+#
+# DB Prerequisite: COMPLETE (@data-engineer 2026-05-18)
+#   supabase/migrations/001_create_casas.sql    ✓
+#   supabase/migrations/002_create_operacoes.sql ✓
+#   supabase/migrations/003_create_apostas.sql   ✓
+#   supabase/tests/smoke_test.sql               ✓
+# =============================================================================
+
+epicId: mvp-alpha-tracker
+epicTitle: "AlphaTracker MVP — Sports Arbitrage & Matched Betting Tracker"
+specRef: "docs/stories/mvp-alpha-tracker/spec/spec.md"
+planRef: "docs/stories/mvp-alpha-tracker/plan/implementation.yaml"
+createdAt: "2026-05-18T13:00:00.000Z"
+createdBy: "@pm"
+mode: yolo
+template: epic-orchestration
+
+storyBasePath: "docs/stories/mvp-alpha-tracker/stories"
+
+# =============================================================================
+# STORIES CATALOG
+# 18 stories derived from 30 implementation.yaml subtasks
+# Naming: MVP-{phase}.{seq} — mirrors phase numbering from implementation.yaml
+# =============================================================================
+
+stories:
+
+  # ─── WAVE 1: Foundation ───────────────────────────────────────────────────
+
+  MVP-1-1:
+    title: "Foundation: Vite + React + TS + Tailwind project bootstrap"
+    file: "1.1.story.md"
+    branch: "feat/mvp-1-1-foundation-bootstrap"
+    executor: "@dev"
+    quality_gate: "@qa"
+    complexity: medium
+    priority: critical
+    key_files:
+      - package.json
+      - vite.config.ts
+      - tailwind.config.ts
+      - postcss.config.js
+    plan_subtasks: ["1.1", "1.2"]
+    notes: >
+      Bootstrap Vite SPA + all 15 dependencies. TS strict mode. .env.example with
+      VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY. Absolute imports via tsconfig paths.
+
+  MVP-1-2:
+    title: "Supabase client singleton + TypeScript domain types"
+    file: "1.2.story.md"
+    branch: "feat/mvp-1-2-supabase-client-types"
+    executor: "@dev"
+    quality_gate: "@qa"
+    complexity: small
+    priority: critical
+    key_files:
+      - src/lib/supabase.ts
+      - src/types/index.ts
+    plan_subtasks: ["1.3"]
+    notes: >
+      createClient singleton. Types: Casa, Operacao, Aposta, CenarioPnL.
+      Enums: OperacaoTipo (5 values), OperacaoStatus, ApostaResultado.
+      Verify @supabase/ssr vs @supabase/auth-helpers-react for Vite SPA (Risk-3).
+
+  MVP-1-3:
+    title: "Zod validation schemas — Casa and Operacao"
+    file: "1.3.story.md"
+    branch: "feat/mvp-1-3-zod-schemas"
+    executor: "@dev"
+    quality_gate: "@qa"
+    complexity: small
+    priority: high
+    key_files:
+      - src/schemas/casaSchema.ts
+      - src/schemas/operacaoSchema.ts
+    plan_subtasks: ["1.4"]
+    notes: >
+      casaSchema: nome required min 1 char. operacaoSchema: tipo enum, data, valorPagoFixo
+      nullable, legs array with stake > 0 and grossReturn > 0. If any leg has manual
+      grossReturn → valorPagoFixo must be null.
+
+  MVP-1-4:
+    title: "Apply database migrations to Supabase (001 + 002 + 003)"
+    file: "1.4.story.md"
+    branch: "feat/mvp-1-4-apply-migrations"
+    executor: "@dev"
+    quality_gate: "@qa"
+    complexity: small
+    priority: critical
+    key_files:
+      - supabase/migrations/001_create_casas.sql
+      - supabase/migrations/002_create_operacoes.sql
+      - supabase/migrations/003_create_apostas.sql
+    plan_subtasks: ["1.5", "1.6"]
+    notes: >
+      SQL files are complete (produced by @data-engineer 2026-05-18).
+      This story: run supabase db push, validate in Supabase Studio, run smoke_test.sql.
+      Verify RLS policies active, triggers attached, indexes present.
+
+  # ─── WAVE 2: Auth & Casas ─────────────────────────────────────────────────
+
+  MVP-2-1:
+    title: "Auth hook + React Router + protected routes"
+    file: "2.1.story.md"
+    branch: "feat/mvp-2-1-auth-router"
+    executor: "@dev"
+    quality_gate: "@qa"
+    complexity: medium
+    priority: critical
+    key_files:
+      - src/hooks/useAuth.ts
+      - src/router.tsx
+      - src/main.tsx
+      - src/App.tsx
+    plan_subtasks: ["2.1", "2.2"]
+    notes: >
+      useAuth: onAuthStateChange, signIn, signOut, session state.
+      router: createBrowserRouter, protected routes redirect /login if !session.
+      App.tsx: AuthGuard wraps protected content. main.tsx: QueryClientProvider + RouterProvider.
+
+  MVP-2-2:
+    title: "LoginPage + base UI components (Input, Button, Select)"
+    file: "2.2.story.md"
+    branch: "feat/mvp-2-2-login-ui-components"
+    executor: "@dev"
+    quality_gate: "@qa"
+    complexity: medium
+    priority: high
+    key_files:
+      - src/pages/LoginPage.tsx
+      - src/components/ui/Input.tsx
+      - src/components/ui/Button.tsx
+      - src/components/ui/Select.tsx
+    plan_subtasks: ["2.3", "2.4"]
+    notes: >
+      LoginPage: email/password form, sonner toast on error, redirect on success.
+      Input.tsx: onKeyDown handler for Tab/Enter keyboard navigation (NFR-1).
+      Select.tsx: for casa dropdown in LegRows.
+
+  MVP-2-3:
+    title: "Casas CRUD — hook + form + list + page"
+    file: "2.3.story.md"
+    branch: "feat/mvp-2-3-casas-crud"
+    executor: "@dev"
+    quality_gate: "@qa"
+    complexity: medium
+    priority: high
+    key_files:
+      - src/hooks/useCasas.ts
+      - src/components/casas/CasaForm.tsx
+      - src/components/casas/CasaList.tsx
+      - src/pages/CasasPage.tsx
+    plan_subtasks: ["2.5", "2.6"]
+    notes: >
+      useCasas: useQuery (active casas) + useMutation (create/update/deactivate).
+      invalidateQueries on mutation. Soft delete: is_active=false (RESTRICT FK preserved).
+      CasaForm: react-hook-form + zod resolver. Browser verify: create 'Betano', deactivate.
+
+  # ─── WAVE 3: PnL Engine ───────────────────────────────────────────────────
+
+  MVP-3-1:
+    title: "PnL engine (4 formulas) + dates utility"
+    file: "3.1.story.md"
+    branch: "feat/mvp-3-1-pnl-engine"
+    executor: "@dev"
+    quality_gate: "@qa"
+    complexity: large
+    priority: critical
+    key_files:
+      - src/lib/pnl.ts
+      - src/lib/dates.ts
+    plan_subtasks: ["3.1", "3.2"]
+    notes: >
+      CRITICAL: use new Decimal() for ALL arithmetic — never native JS operators (CON-3).
+      Formula 1 Simetrico: pnl = grossReturnFixo - Σ(stake não-freebet).
+      Formula 2 Assimetrico: pnl(leg_i) = leg_i.grossReturn - Σ(stake não-freebet).
+      Formula 3 SNR: custoReal = isFreebet ? 0 : stake.
+      Formula 4 Duplo Green: grossReturnEfetivo = isDoubleGreen ? gr*2 : gr.
+
+  MVP-3-2:
+    title: "PnL engine unit tests — 6 P0 financial scenarios (GATE)"
+    file: "3.2.story.md"
+    branch: "feat/mvp-3-2-pnl-tests"
+    executor: "@dev"
+    quality_gate: "@qa"
+    complexity: medium
+    priority: critical
+    key_files:
+      - src/lib/__tests__/pnl.test.ts
+    plan_subtasks: ["3.3"]
+    notes: >
+      HARD GATE: all 6 tests must PASS before Wave 4 can start.
+      1. Simetrico basico. 2. Freebet SNR (custo=0). 3. Assimetrico 3 cenarios.
+      4. Duplo green (grossReturn*2). 5. Decimal precision (0.1+0.2 test).
+      6. N legs (4 and 5 casas). Command: npx vitest run src/lib/__tests__/pnl.test.ts
+
+  # ─── WAVE 4: Operations Form ──────────────────────────────────────────────
+
+  MVP-4-1:
+    title: "Operations hook — CRUD + apostas + marcarResultado"
+    file: "4.1.story.md"
+    branch: "feat/mvp-4-1-operacoes-hook"
+    executor: "@dev"
+    quality_gate: "@qa"
+    complexity: large
+    priority: critical
+    key_files:
+      - src/hooks/useOperacoes.ts
+    plan_subtasks: ["4.1"]
+    notes: >
+      useQuery: list operations with apostas (FK join).
+      useMutation: createOperacao, updateAposta, deleteOperacao, marcarResultado.
+      marcarResultado: apostas.resultado + calculates final pnl + status Concluida.
+      invalidateQueries(['operacoes']) and invalidateQueries(['dashboard']) on success.
+
+  MVP-4-2:
+    title: "Draft store + LegRow (Tab/Enter) + PnLPreview"
+    file: "4.2.story.md"
+    branch: "feat/mvp-4-2-draft-legrow-preview"
+    executor: "@dev"
+    quality_gate: "@qa"
+    complexity: large
+    priority: critical
+    key_files:
+      - src/stores/operacaoDraftStore.ts
+      - src/components/operacoes/LegRow.tsx
+      - src/components/operacoes/PnLPreview.tsx
+    plan_subtasks: ["4.2", "4.3", "4.4"]
+    notes: >
+      DraftStore: zustand persist, name 'operacao-draft', setDraft/clearDraft.
+      LegRow: Tab order casa→stake→grossReturn→isFreebet→isDoubleGreen→next leg.
+      Enter on last field: onEnterLastField() adds new leg (NFR-1).
+      PnLPreview: calls calcularCenariosPnL on each render (<100ms), green/red.
+
+  MVP-4-3:
+    title: "OperacaoForm + NovaOperacaoPage — complete new operation flow"
+    file: "4.3.story.md"
+    branch: "feat/mvp-4-3-operacao-form-page"
+    executor: "@dev"
+    quality_gate: "@qa"
+    complexity: large
+    priority: critical
+    key_files:
+      - src/components/operacoes/OperacaoForm.tsx
+      - src/pages/NovaOperacaoPage.tsx
+    plan_subtasks: ["4.5", "4.6"]
+    notes: >
+      OperacaoForm: useFieldArray dynamic legs, 5-value tipo selector.
+      valorPagoFixo propagates to all legs as grossReturn (symmetric mode).
+      Browser verify: Tab/Enter 3-leg Extracao flow end-to-end. Draft recovery on reload.
+
+  # ─── WAVE 5: Results & Operations Management ──────────────────────────────
+
+  MVP-5-1:
+    title: "ResultadoModal — mark leg winner and finalize PnL"
+    file: "5.1.story.md"
+    branch: "feat/mvp-5-1-resultado-modal"
+    executor: "@dev"
+    quality_gate: "@qa"
+    complexity: medium
+    priority: critical
+    key_files:
+      - src/components/operacoes/ResultadoModal.tsx
+    plan_subtasks: ["5.1"]
+    notes: >
+      List legs with Ganhou/Perdeu radio buttons. On confirm: marcarResultado →
+      definitive PnL written to DB. Auto-transitions Pendente → Concluida.
+
+  MVP-5-2:
+    title: "OperacaoCard + OperacaoList + OperacoesPage"
+    file: "5.2.story.md"
+    branch: "feat/mvp-5-2-operacoes-page"
+    executor: "@dev"
+    quality_gate: "@qa"
+    complexity: large
+    priority: critical
+    key_files:
+      - src/components/operacoes/OperacaoCard.tsx
+      - src/components/operacoes/OperacaoList.tsx
+      - src/pages/OperacoesPage.tsx
+    plan_subtasks: ["5.2", "5.3"]
+    notes: >
+      OperacaoCard: status chip, tipo badge, data. Concluida→definitive PnL.
+      Pendente→CenarioPnL table. isDoubleGreen: badge visual on leg.
+      OperacaoList: TanStack Query with loading/empty states.
+      Browser verify: mark leg ganhadora → PnL appears, status Concluida.
+
+  # ─── WAVE 6: Dashboard & Finalization ─────────────────────────────────────
+
+  MVP-6-1:
+    title: "Dashboard: hook + summary card + bar chart + DashboardPage"
+    file: "6.1.story.md"
+    branch: "feat/mvp-6-1-dashboard"
+    executor: "@dev"
+    quality_gate: "@qa"
+    complexity: large
+    priority: high
+    key_files:
+      - src/hooks/useDashboard.ts
+      - src/components/dashboard/PnLSummaryCard.tsx
+      - src/components/dashboard/PeriodToggle.tsx
+      - src/components/dashboard/PnLBarChart.tsx
+      - src/pages/DashboardPage.tsx
+    plan_subtasks: ["6.1", "6.2", "6.3"]
+    notes: >
+      Only Concluidas aggregated. Pendentes shown separately, never in total.
+      Aggregation: daily/weekly/monthly via dates.ts. Filter by tipo (FR-9).
+      PeriodToggle: 3-button Diario/Semanal/Mensal local state.
+      recharts BarChart with green/red coloring. Lazy load recharts (bundle NFR-2).
+
+  MVP-6-2:
+    title: "Edit + Delete operations — FR-11 with confirmation dialog"
+    file: "6.2.story.md"
+    branch: "feat/mvp-6-2-edit-delete-operacoes"
+    executor: "@dev"
+    quality_gate: "@qa"
+    complexity: medium
+    priority: high
+    key_files:
+      - src/components/operacoes/OperacaoCard.tsx
+      - src/components/ui/ConfirmDialog.tsx
+    plan_subtasks: ["6.4"]
+    notes: >
+      Extend OperacaoCard with Edit/Delete actions. ConfirmDialog: generic component.
+      Edit: re-opens form with operation data. Delete: ConfirmDialog → deleteOperacao.
+      Dashboard must reflect updated PnL after delete.
+
+  MVP-6-3:
+    title: "Integration + E2E tests (Tab/Enter, RLS, cache, draft)"
+    file: "6.3.story.md"
+    branch: "feat/mvp-6-3-integration-e2e-tests"
+    executor: "@dev"
+    quality_gate: "@qa"
+    complexity: large
+    priority: critical
+    key_files:
+      - src/lib/__tests__/integration.test.ts
+      - playwright.config.ts
+    plan_subtasks: ["6.5"]
+    notes: >
+      5 mandatory test scenarios:
+      1. Tab/Enter flow: 3-leg operation via keyboard only (Playwright).
+      2. RLS isolation: user B cannot see user A data (Supabase test client).
+      3. Dashboard cache: total updates after new operation without page refresh.
+      4. PnL assimetrico: 3 legs different grossReturn → correct scenarios.
+      5. Draft recovery: close tab → reopen → draft restored.
+
+  MVP-6-4:
+    title: "Vercel deploy + final validation checklist"
+    file: "6.4.story.md"
+    branch: "feat/mvp-6-4-vercel-deploy"
+    executor: "@dev"
+    quality_gate: "@qa"
+    complexity: small
+    priority: high
+    key_files:
+      - vercel.json
+    plan_subtasks: ["6.6"]
+    notes: >
+      vercel.json: SPA rewrites /* → /index.html.
+      Bundle < 300KB gzip. Lazy load recharts via React.lazy().
+      Configure env vars in Vercel dashboard. Test 375px viewport (iPhone SE).
+      Final RLS prod test: 2 accounts, verify isolation.
+
+# =============================================================================
+# WAVE STRUCTURE
+# 6 waves matching the 6 implementation phases
+# Total: 18 stories
+# =============================================================================
+
+waves:
+
+  - number: 1
+    name: "Foundation & Infrastructure"
+    parallel: false
+    stories: [MVP-1-1, MVP-1-2, MVP-1-3, MVP-1-4]
+    dependencies: []
+    gate:
+      agent: "@architect"
+      focus: >
+        Project compiles (npm run typecheck passes). Supabase client instantiates.
+        All 3 DB migrations applied. smoke_test.sql: all 10 assertions pass.
+        Types exported. Zod schemas valid. No uncommitted changes.
+    merge:
+      order: [MVP-1-1, MVP-1-2, MVP-1-3, MVP-1-4]
+      conflict_risk: low
+      notes: "Sequential stories — no overlap expected"
+    tag: "wave-1-foundation"
+    estimated_effort: "4-6h"
+
+  - number: 2
+    name: "Auth & Casas"
+    parallel: false
+    stories: [MVP-2-1, MVP-2-2, MVP-2-3]
+    dependencies: [1]
+    gate:
+      agent: "@qa"
+      focus: >
+        Login flow works end-to-end. Protected routes block unauthenticated access.
+        Casas CRUD: create, soft-delete, list. RLS: user A casas not visible to user B.
+        UI components render correctly. No console errors.
+    merge:
+      order: [MVP-2-1, MVP-2-2, MVP-2-3]
+      conflict_risk: low
+      notes: "Sequential stories — no overlap expected"
+    tag: "wave-2-auth-casas"
+    estimated_effort: "4-6h"
+
+  - number: 3
+    name: "PnL Engine (HARD GATE)"
+    parallel: false
+    stories: [MVP-3-1, MVP-3-2]
+    dependencies: [1]
+    gate:
+      agent: "@qa"
+      focus: >
+        HARD GATE: All 6 P0 unit tests must PASS (npx vitest run src/lib/__tests__/pnl.test.ts).
+        No float precision errors (0.1 + 0.2 test). All 4 formulas verified.
+        decimal.js used exclusively — zero native float arithmetic in pnl.ts.
+        Wave 4 BLOCKED until this gate is APPROVED.
+    merge:
+      order: [MVP-3-1, MVP-3-2]
+      conflict_risk: none
+      notes: "Isolated utility files — no overlap with wave 2"
+    tag: "wave-3-pnl-engine"
+    estimated_effort: "3-5h"
+
+  - number: 4
+    name: "Operations Form"
+    parallel: false
+    stories: [MVP-4-1, MVP-4-2, MVP-4-3]
+    dependencies: [2, 3]
+    gate:
+      agent: "@qa"
+      focus: >
+        Tab/Enter keyboard navigation works: add 3-leg operation without mouse.
+        valorPagoFixo propagates to all leg grossReturn fields.
+        PnLPreview updates on every keystroke (<100ms).
+        Draft persists in localStorage across page reload.
+        useOperacoes mutations invalidate queries correctly.
+    merge:
+      order: [MVP-4-1, MVP-4-2, MVP-4-3]
+      conflict_risk: low
+      notes: "Sequential stories — MVP-4-2 and MVP-4-3 both extend OperacaoForm area"
+    tag: "wave-4-operations-form"
+    estimated_effort: "6-8h"
+
+  - number: 5
+    name: "Results & Operations Management"
+    parallel: false
+    stories: [MVP-5-1, MVP-5-2]
+    dependencies: [4]
+    gate:
+      agent: "@qa"
+      focus: >
+        ResultadoModal correctly transitions Pendente → Concluida.
+        Final PnL written to DB after marking resultado.
+        OperacaoCard shows definitive PnL for Concluidas, CenarioPnL for Pendentes.
+        isDoubleGreen badge visible. Empty states handled gracefully.
+    merge:
+      order: [MVP-5-1, MVP-5-2]
+      conflict_risk: low
+      notes: "MVP-5-2 imports ResultadoModal from MVP-5-1"
+    tag: "wave-5-results-management"
+    estimated_effort: "4-6h"
+
+  - number: 6
+    name: "Dashboard & Finalization"
+    parallel: false
+    stories: [MVP-6-1, MVP-6-2, MVP-6-3, MVP-6-4]
+    dependencies: [5]
+    gate:
+      agent: "@architect"
+      focus: >
+        Dashboard aggregates only Concluidas. Pendentes shown separately.
+        Bundle < 300KB gzip (recharts lazy loaded). All 5 integration/E2E tests pass.
+        Playwright keyboard navigation test passes. RLS isolation confirmed in prod.
+        Vercel deploy successful. 375px viewport usable without horizontal scroll.
+    merge:
+      order: [MVP-6-1, MVP-6-2, MVP-6-3, MVP-6-4]
+      conflict_risk: medium
+      notes: "MVP-6-2 modifies OperacaoCard (also touched in MVP-5-2) — review merge carefully"
+    tag: "wave-6-dashboard-final"
+    estimated_effort: "8-12h"
+
+# =============================================================================
+# FINAL GATE
+# =============================================================================
+
+final_gate:
+  agent: "@architect"
+  tag: "mvp-alpha-tracker-v1.0.0"
+  focus: >
+    Full MVP functional: login → add casa → register operation → mark result → view dashboard.
+    All AC from spec.md v2 satisfied.
+    NFR-1: Tab/Enter keyboard-first confirmed via Playwright.
+    NFR-2: Bundle < 300KB gzip.
+    NFR-3: RLS isolation verified with 2 real accounts.
+    NFR-5: Draft recovery confirmed.
+    No HIGH or CRITICAL issues open.
+    Production URL accessible.
+
+# =============================================================================
+# PLAN SUMMARY
+# =============================================================================
+# Total stories:  18
+# Total waves:    6
+# Critical path:  W1 → W2+W3 (parallel) → W4 → W5 → W6
+# PnL gate:       W3 is a HARD GATE — W4 blocked until all 6 P0 tests PASS
+# Merge risk:     MVP-6-2 touches OperacaoCard (also modified in MVP-5-2)
+# Estimated total: 3-6 weeks (solo developer, interactive mode)
+#
+# Story files to create (@sm):
+#   docs/stories/mvp-alpha-tracker/stories/1.1.story.md  through
+#   docs/stories/mvp-alpha-tracker/stories/6.4.story.md  (18 files)
+# =============================================================================

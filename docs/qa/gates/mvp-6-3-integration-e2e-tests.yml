@@ -1,0 +1,43 @@
+storyId: MVP-6-3
+verdict: CONCERNS
+reviewedAt: "2026-05-19"
+reviewedBy: "@qa (Quinn)"
+
+checks:
+  - id: code-review
+    status: PASS
+    notes: "6 test files. Clean structure. playwright.config.ts minimal and correct. REL-001 skips consistent with Wave 4-5 pattern. MockStorage approach for draft-recovery is technically superior to globalThis mock."
+  - id: acceptance-criteria
+    status: PASS
+    notes: "AC-1 through AC-7 all met. pnl-assimetrico: 4 tests all pass with exact expected values. draft-recovery: 2 tests pass with in-memory storage. Tests 1/2/3 correctly skipped with REL-001."
+  - id: test-execution
+    status: PASS
+    notes: "npx vitest run src/tests/integration/ → 7 passed, 2 skipped (REL-001). npm run typecheck exits 0."
+  - id: no-regressions
+    status: PASS
+    notes: "New files only. No existing code modified. pnl-assimetrico covers same case as pnl.test.ts but as a standalone integration test file per AC-5 scope."
+  - id: rel-001-deferred
+    status: CONCERNS
+    notes: "REL-001: Tests 1 (Playwright E2E), 2 (RLS), and 3 (dashboard cache dynamic) deferred to Supabase Cloud migration (MVP-6-4). Non-blocking per Wave 4-5 precedent."
+  - id: coverage-gap
+    status: CONCERNS
+    notes: "TEST-001: dashboard-cache.test.ts static analysis only — dynamic invalidation test deferred. Non-blocking."
+
+issues:
+  - id: CONCERN-001
+    severity: low
+    category: tests
+    description: "Tests 1/2/3 (Playwright, RLS, dashboard cache dynamic) deferred under REL-001. Will activate after Supabase Cloud migration in MVP-6-4."
+    recommendation: "Remove .skip from tests after MVP-6-4 Supabase Cloud migration is complete."
+  - id: CONCERN-002
+    severity: low
+    category: tests
+    description: "dashboard-cache.test.ts: dynamic assertion of invalidateQueries wiring not tested. Static analysis confirms wiring is correct in useOperacoes.ts."
+    recommendation: "Add dynamic test with mocked Supabase client in a follow-up story."
+
+summary: >
+  MVP-6-3 integration + E2E test suite complete. 7 tests passing, 2 skipped (REL-001).
+  pnl-assimetrico and draft-recovery run fully offline with correct assertions.
+  Playwright config in place for when REL-001 is resolved.
+  Two non-blocking concerns (REL-001 deferred, static dashboard analysis).
+  Story approved for @devops push and continuation to MVP-6-4.

@@ -1,0 +1,16 @@
+schema: 1
+story: '5.1'
+gate: CONCERNS
+status_reason: 'All ACs pass and typecheck exits 0. Non-blocking concerns: no unit tests and browser verification deferred per REL-001 (Supabase Cloud migration deferred to project end).'
+reviewer: 'Quinn'
+updated: '2026-05-18T17:10:00Z'
+top_issues:
+  - id: 'TEST-001'
+    severity: medium
+    finding: 'No unit/component tests for ResultadoModal — radio selection, confirm/cancel flow, error path (modal stays open) are untested'
+    suggested_action: 'Add component tests in Wave 6 or dedicated test wave covering ResultadoModal interaction flow'
+  - id: 'REL-001'
+    severity: low
+    finding: 'AC-2 browser verification (open modal, confirm winner, observe Concluida status) requires Supabase Cloud — deferred'
+    suggested_action: 'Execute browser verification during Supabase Cloud migration (end of project) per project decision'
+waiver: { active: false }

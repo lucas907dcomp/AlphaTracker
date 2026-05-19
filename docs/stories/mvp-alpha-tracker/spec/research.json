@@ -1,0 +1,426 @@
+{
+  "storyId": "mvp-alpha-tracker",
+  "researchedAt": "2026-05-18T09:45:00.000Z",
+  "researchedBy": "@analyst",
+  "complexity": "COMPLEX",
+  "sourceNote": "Context7/EXA MCPs indisponíveis neste ambiente. Pesquisa baseada em knowledge base verificado (cutoff Ago/2025). Marcar como 'manual'. Versões são latest-stable conhecidas.",
+
+  "dependencies": [
+    {
+      "name": "react",
+      "type": "library",
+      "version": "^18.3.1",
+      "verified": true,
+      "source": "manual",
+      "existing": { "installed": false, "currentVersion": null },
+      "documentation": {
+        "url": "https://react.dev",
+        "relevantSections": ["Hooks", "useReducer (form state)", "useTransition (UX responsiva)"]
+      },
+      "patterns": [
+        {
+          "name": "Controlled form with fast field navigation",
+          "description": "Usar `onKeyDown` com Tab/Enter para mover foco entre campos sem mouse. Combinado com react-hook-form.",
+          "codeExample": "const handleKeyDown = (e, nextRef) => { if (e.key === 'Enter') { e.preventDefault(); nextRef.current?.focus(); } };"
+        }
+      ],
+      "compatibility": { "preferred": true, "alternatives": [], "conflicts": [] }
+    },
+    {
+      "name": "typescript",
+      "type": "library",
+      "version": "^5.5.0",
+      "verified": true,
+      "source": "manual",
+      "existing": { "installed": false, "currentVersion": null },
+      "documentation": {
+        "url": "https://www.typescriptlang.org/docs/",
+        "relevantSections": ["Strict mode", "discriminated unions (Operacao.tipo)", "as const enums"]
+      },
+      "patterns": [
+        {
+          "name": "Discriminated union para tipos de Operação",
+          "description": "Modelar os 5 tipos de Operação com type safety completo.",
+          "codeExample": "type TipoOperacao = 'Freebet' | 'Extracao' | 'SuperOdd' | 'TentativaDuplo' | 'Aposta';\ntype StatusOperacao = 'Pendente' | 'Concluida';\ntype ResultadoAposta = 'Ganhou' | 'Perdeu' | 'Pendente';"
+        }
+      ],
+      "compatibility": { "preferred": true, "alternatives": [], "conflicts": [] }
+    },
+    {
+      "name": "vite",
+      "type": "library",
+      "version": "^5.3.0",
+      "verified": true,
+      "source": "manual",
+      "existing": { "installed": false, "currentVersion": null },
+      "documentation": {
+        "url": "https://vitejs.dev/guide/",
+        "relevantSections": ["React plugin (@vitejs/plugin-react)", "Environment Variables", "Build"]
+      },
+      "patterns": [
+        {
+          "name": "Vite + React + TypeScript scaffold",
+          "description": "Setup inicial recomendado via create command.",
+          "codeExample": "npm create vite@latest alpha-tracker -- --template react-ts"
+        }
+      ],
+      "compatibility": { "preferred": true, "alternatives": ["next.js (descartado — sem necessidade de SSR)"], "conflicts": [] }
+    },
+    {
+      "name": "tailwindcss",
+      "type": "library",
+      "version": "^3.4.4",
+      "verified": true,
+      "source": "manual",
+      "existing": { "installed": false, "currentVersion": null },
+      "documentation": {
+        "url": "https://tailwindcss.com/docs",
+        "relevantSections": ["Forms plugin", "Responsive design (mobile-first)", "Focus styles (Tab navigation)"]
+      },
+      "patterns": [
+        {
+          "name": "Mobile-first data entry form",
+          "description": "Classes para campos de formulário otimizados para mobile e touch.",
+          "codeExample": "className=\"w-full text-lg py-3 px-4 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:outline-none\""
+        },
+        {
+          "name": "Focus-visible para keyboard navigation",
+          "description": "Garantir indicadores visuais de foco para usuários com Tab/Enter.",
+          "codeExample": "className=\"focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none\""
+        }
+      ],
+      "compatibility": { "preferred": true, "alternatives": [], "conflicts": [] },
+      "additionalPackages": ["@tailwindcss/forms", "tailwind-merge", "clsx"]
+    },
+    {
+      "name": "@tanstack/react-query",
+      "type": "library",
+      "version": "^5.51.0",
+      "verified": true,
+      "source": "manual",
+      "existing": { "installed": false, "currentVersion": null },
+      "documentation": {
+        "url": "https://tanstack.com/query/latest",
+        "relevantSections": ["useQuery", "useMutation", "QueryClient", "Optimistic Updates", "Supabase integration"]
+      },
+      "patterns": [
+        {
+          "name": "Supabase + TanStack Query para Operações",
+          "description": "Padrão de integração para buscar e mutacionar dados do Supabase.",
+          "codeExample": "const { data: operacoes } = useQuery({\n  queryKey: ['operacoes', userId],\n  queryFn: () => supabase.from('operacoes').select('*, apostas(*, casa(*))').eq('user_id', userId)\n});\n\nconst createOperacao = useMutation({\n  mutationFn: (data) => supabase.from('operacoes').insert(data),\n  onSuccess: () => queryClient.invalidateQueries({ queryKey: ['operacoes'] })\n});"
+        },
+        {
+          "name": "Optimistic update para marcação de resultado",
+          "description": "Atualiza UI instantaneamente ao marcar resultado de operação pendente.",
+          "codeExample": "useMutation({\n  onMutate: async ({ operacaoId, resultado }) => {\n    await queryClient.cancelQueries({ queryKey: ['operacoes'] });\n    const previous = queryClient.getQueryData(['operacoes']);\n    queryClient.setQueryData(['operacoes'], (old) => /* update */)\n    return { previous };\n  }\n})"
+        }
+      ],
+      "compatibility": { "preferred": true, "alternatives": ["SWR (menos features)", "Jotai Query"], "conflicts": [] }
+    },
+    {
+      "name": "zustand",
+      "type": "library",
+      "version": "^4.5.4",
+      "verified": true,
+      "source": "manual",
+      "existing": { "installed": false, "currentVersion": null },
+      "documentation": {
+        "url": "https://docs.pmnd.rs/zustand/getting-started/introduction",
+        "relevantSections": ["createStore", "persist middleware (localStorage draft)", "devtools"]
+      },
+      "patterns": [
+        {
+          "name": "Draft de Operação com persist",
+          "description": "Salvar rascunho da operação em criação no localStorage (EC-7: prevenção de perda de dados).",
+          "codeExample": "const useOperacaoDraftStore = create(\n  persist(\n    (set) => ({\n      draft: null,\n      setDraft: (data) => set({ draft: data }),\n      clearDraft: () => set({ draft: null })\n    }),\n    { name: 'operacao-draft' }\n  )\n);"
+        }
+      ],
+      "compatibility": { "preferred": true, "alternatives": ["jotai", "recoil"], "conflicts": [] }
+    },
+    {
+      "name": "@supabase/supabase-js",
+      "type": "service",
+      "version": "^2.44.0",
+      "verified": true,
+      "source": "manual",
+      "existing": { "installed": false, "currentVersion": null },
+      "documentation": {
+        "url": "https://supabase.com/docs",
+        "relevantSections": ["Authentication", "Row Level Security", "JavaScript Client", "Database Functions"]
+      },
+      "patterns": [
+        {
+          "name": "RLS Policy — multi-tenant user isolation",
+          "description": "Política fundamental para isolar dados por usuário. CRÍTICO para CON-4.",
+          "codeExample": "-- Aplicar em TODAS as tabelas (casas, operacoes, apostas)\nCREATE POLICY \"users_own_data\" ON casas\n  FOR ALL\n  USING (auth.uid() = user_id)\n  WITH CHECK (auth.uid() = user_id);\n\n-- Habilitar RLS na tabela\nALTER TABLE casas ENABLE ROW LEVEL SECURITY;"
+        },
+        {
+          "name": "Supabase Auth com React Hook",
+          "description": "Listener de sessão para manter auth state sincronizado.",
+          "codeExample": "const { data: { subscription } } = supabase.auth.onAuthStateChange(\n  (event, session) => {\n    if (event === 'SIGNED_IN') setUser(session?.user ?? null);\n    if (event === 'SIGNED_OUT') setUser(null);\n  }\n);\nreturn () => subscription.unsubscribe();"
+        },
+        {
+          "name": "Supabase select com joins (Operação + Apostas + Casa)",
+          "description": "Busca uma Operação com todas as Apostas e Casas num único request.",
+          "codeExample": "const { data } = await supabase\n  .from('operacoes')\n  .select(`\n    *,\n    apostas (\n      *,\n      casa:casas(*)\n    )\n  `)\n  .eq('user_id', user.id)\n  .order('created_at', { ascending: false });"
+        }
+      ],
+      "compatibility": { "preferred": true, "alternatives": ["Firebase (não-relacional, rejeitado)", "PlanetScale (sem Auth nativo)"], "conflicts": [] },
+      "criticalNote": "RLS DEVE ser implementada por @data-engineer antes de qualquer feature de multi-usuário. Não tem default — explicitamente habilitar em cada tabela."
+    },
+    {
+      "name": "react-hook-form",
+      "type": "library",
+      "version": "^7.52.0",
+      "verified": true,
+      "source": "manual",
+      "existing": { "installed": false, "currentVersion": null },
+      "documentation": {
+        "url": "https://react-hook-form.com/docs",
+        "relevantSections": ["useFieldArray (Legs dinâmicas)", "register", "Controller", "zodResolver"]
+      },
+      "patterns": [
+        {
+          "name": "useFieldArray para Legs dinâmicas",
+          "description": "Padrão central para adicionar/remover Apostas (Legs) dinamicamente. Resolve FR-6 e NFR-1.",
+          "codeExample": "const { fields: legs, append, remove } = useFieldArray({\n  control,\n  name: 'apostas'\n});\n\n// Adicionar nova leg ao pressionar Enter na última\nconst handleLegKeyDown = (e, isLastField) => {\n  if (e.key === 'Enter' && isLastField) {\n    e.preventDefault();\n    append({ casaId: '', stake: '', grossReturn: '', isFreebet: false });\n  }\n};"
+        },
+        {
+          "name": "Tab order explícito para data entry",
+          "description": "Controlar Tab order: casa → stake → grossReturn → [Enter = próxima leg].",
+          "codeExample": "// Usar refs para controlar foco manualmente quando necessário\nconst stakeRef = useRef<HTMLInputElement>(null);\n<input {...register('casa')} onKeyDown={(e) => e.key === 'Enter' && stakeRef.current?.focus()} />\n<input ref={stakeRef} {...register('stake')} />"
+        }
+      ],
+      "compatibility": { "preferred": true, "alternatives": ["formik (mais verboso)", "Final Form"], "conflicts": [] }
+    },
+    {
+      "name": "zod",
+      "type": "library",
+      "version": "^3.23.8",
+      "verified": true,
+      "source": "manual",
+      "existing": { "installed": false, "currentVersion": null },
+      "documentation": {
+        "url": "https://zod.dev",
+        "relevantSections": ["z.number().min(0.01)", "z.discriminatedUnion (tipos de Operação)", "zodResolver"]
+      },
+      "patterns": [
+        {
+          "name": "Schema de validação para Operação",
+          "description": "Validação de stake e gross_return garantindo valores positivos com 2 decimais.",
+          "codeExample": "const apostaSchema = z.object({\n  casaId: z.string().uuid(),\n  stake: z.number().min(0.01, 'Stake deve ser maior que zero'),\n  grossReturn: z.number().min(0.01),\n  isFreebet: z.boolean().default(false),\n  isDoubleGreen: z.boolean().default(false)\n});\n\nconst operacaoSchema = z.object({\n  tipo: z.enum(['Freebet','Extracao','SuperOdd','TentativaDuplo','Aposta']),\n  valorPagoFixo: z.number().min(0.01).optional(),\n  apostas: z.array(apostaSchema).min(1, 'Mínimo 1 aposta')\n});"
+        }
+      ],
+      "compatibility": { "preferred": true, "alternatives": ["yup (mais antigo, menos TypeScript-native)"], "conflicts": [] }
+    },
+    {
+      "name": "decimal.js",
+      "type": "library",
+      "version": "^10.4.3",
+      "verified": true,
+      "source": "manual",
+      "existing": { "installed": false, "currentVersion": null },
+      "documentation": {
+        "url": "https://mikemcl.github.io/decimal.js/",
+        "relevantSections": ["Arithmetic operations", "toFixed(2)", "Decimal precision"]
+      },
+      "patterns": [
+        {
+          "name": "Cálculo de PnL sem floating point errors",
+          "description": "OBRIGATÓRIO para cálculos financeiros. JavaScript nativo: 0.1 + 0.2 = 0.30000000000000004.",
+          "codeExample": "import Decimal from 'decimal.js';\n\n// PnL simétrico\nconst calcularPnL = (grossReturn: number, stakes: number[]): number => {\n  const total = new Decimal(grossReturn);\n  const custos = stakes.reduce((acc, s) => acc.plus(new Decimal(s)), new Decimal(0));\n  return total.minus(custos).toDecimalPlaces(2).toNumber();\n};\n\n// Exemplo: 85 - (20 + 39) = 26.00 (não 25.999999...)\ncalcularPnL(85, [20, 39]); // → 26.00"
+        }
+      ],
+      "compatibility": { "preferred": true, "alternatives": ["dinero.js (mais opinionated, bom para moeda mas overhead)", "big.js (menor, menos features)"], "conflicts": [] },
+      "criticalNote": "OBRIGATÓRIO para fórmulas de PnL. Sem isso, somas de decimais produzem erros de arredondamento que corrompem o tracking financeiro."
+    },
+    {
+      "name": "react-router-dom",
+      "type": "library",
+      "version": "^6.24.0",
+      "verified": true,
+      "source": "manual",
+      "existing": { "installed": false, "currentVersion": null },
+      "documentation": {
+        "url": "https://reactrouter.com/en/main",
+        "relevantSections": ["createBrowserRouter", "Outlet", "Navigate (auth guard)", "useNavigate"]
+      },
+      "patterns": [
+        {
+          "name": "Auth guard route",
+          "description": "Proteger todas as rotas de usuário autenticado.",
+          "codeExample": "const PrivateRoute = ({ children }) => {\n  const { user, loading } = useAuth();\n  if (loading) return <Spinner />;\n  return user ? children : <Navigate to='/login' replace />;\n};"
+        }
+      ],
+      "compatibility": { "preferred": true, "alternatives": ["TanStack Router (mais novo, full TypeScript)", "@tanstack/react-router v1"], "conflicts": [] }
+    },
+    {
+      "name": "recharts",
+      "type": "library",
+      "version": "^2.12.7",
+      "verified": true,
+      "source": "manual",
+      "existing": { "installed": false, "currentVersion": null },
+      "documentation": {
+        "url": "https://recharts.org/en-US/guide",
+        "relevantSections": ["BarChart (PnL por período)", "ResponsiveContainer (mobile)", "LineChart (evolução)"]
+      },
+      "patterns": [
+        {
+          "name": "BarChart de PnL diário responsivo",
+          "description": "Gráfico de barras para dashboard com cores condicional (verde=lucro, vermelho=prejuízo).",
+          "codeExample": "const getBarColor = (value: number) => value >= 0 ? '#22c55e' : '#ef4444';\n\n<ResponsiveContainer width='100%' height={200}>\n  <BarChart data={pnlData}>\n    <Bar dataKey='pnl' fill='#22c55e'>\n      {pnlData.map((entry, i) => (\n        <Cell key={i} fill={getBarColor(entry.pnl)} />\n      ))}\n    </Bar>\n  </BarChart>\n</ResponsiveContainer>"
+        }
+      ],
+      "compatibility": { "preferred": true, "alternatives": ["Chart.js + react-chartjs-2", "Victory", "visx (mais complexo)"], "conflicts": [] }
+    },
+    {
+      "name": "date-fns",
+      "type": "library",
+      "version": "^3.6.0",
+      "verified": true,
+      "source": "manual",
+      "existing": { "installed": false, "currentVersion": null },
+      "documentation": {
+        "url": "https://date-fns.org/docs/",
+        "relevantSections": ["startOfDay/endOfDay", "startOfWeek/endOfWeek", "startOfMonth/endOfMonth", "format", "eachDayOfInterval"]
+      },
+      "patterns": [
+        {
+          "name": "Agregação de PnL por período",
+          "description": "Calcular PnL diário/semanal/mensal para dashboards (FR-9).",
+          "codeExample": "import { startOfDay, endOfDay, startOfWeek, startOfMonth, isWithinInterval } from 'date-fns';\n\nconst hoje = new Date();\nconst operacoesHoje = operacoes.filter(op =>\n  isWithinInterval(new Date(op.data), {\n    start: startOfDay(hoje),\n    end: endOfDay(hoje)\n  })\n);"
+        }
+      ],
+      "compatibility": { "preferred": true, "alternatives": ["dayjs (menor bundle)", "Luxon"], "conflicts": [] }
+    },
+    {
+      "name": "sonner",
+      "type": "library",
+      "version": "^1.5.0",
+      "verified": true,
+      "source": "manual",
+      "existing": { "installed": false, "currentVersion": null },
+      "documentation": {
+        "url": "https://sonner.emilkowal.ski/",
+        "relevantSections": ["toast.success", "toast.error", "Toaster component"]
+      },
+      "patterns": [
+        {
+          "name": "Toast de feedback de ação",
+          "description": "Feedback não-invasivo para operações de CRUD (salvar, excluir, erro).",
+          "codeExample": "import { toast } from 'sonner';\n\n// Sucesso\ntoast.success('Operação registrada com sucesso');\n\n// Erro com ação\ntoast.error('Erro ao salvar', {\n  description: 'Verifique sua conexão e tente novamente',\n  action: { label: 'Tentar novamente', onClick: () => retry() }\n});"
+        }
+      ],
+      "compatibility": { "preferred": true, "alternatives": ["react-hot-toast", "react-toastify"], "conflicts": [] }
+    },
+    {
+      "name": "@supabase/auth-helpers-react",
+      "type": "library",
+      "version": "^0.5.0",
+      "verified": false,
+      "source": "manual",
+      "existing": { "installed": false, "currentVersion": null },
+      "documentation": {
+        "url": "https://supabase.com/docs/guides/auth/auth-helpers/auth-ui",
+        "relevantSections": ["SessionContextProvider", "useUser", "useSession"]
+      },
+      "patterns": [],
+      "compatibility": { "preferred": false, "alternatives": ["@supabase/ssr (versão mais nova e recomendada para projetos novos)"], "conflicts": [] },
+      "criticalNote": "Verificar se @supabase/ssr é a opção correta para Vite SPA. auth-helpers-react pode estar depreciado. Confirmar com documentação oficial ao iniciar implementação."
+    }
+  ],
+
+  "unverifiedClaims": [
+    {
+      "claim": "Tab/Enter navigation funciona nativamente com react-hook-form useFieldArray",
+      "reason": "Comportamento pode variar conforme o browser e componentes customizados. Requer teste manual durante implementação.",
+      "action": "acceptable_risk"
+    },
+    {
+      "claim": "@supabase/auth-helpers-react vs @supabase/ssr — qual é recomendado para Vite SPA em 2026",
+      "reason": "Supabase tem historicamente mudado suas recomendações de pacotes de auth helper. Verificar docs atuais ao iniciar.",
+      "action": "needs_validation"
+    },
+    {
+      "claim": "Supabase free tier é suficiente para MVP",
+      "reason": "Free tier Supabase (maio 2025): 500MB DB, 50MB file storage, 2 projetos ativos. Adequado para single-user MVP.",
+      "action": "acceptable_risk"
+    }
+  ],
+
+  "recommendations": [
+    {
+      "type": "prefer",
+      "subject": "decimal.js para todos os cálculos de PnL",
+      "rationale": "Floating point errors em JavaScript corrompem cálculos financeiros. 0.1 + 0.2 ≠ 0.3 em JS nativo. OBRIGATÓRIO para fórmulas de PnL."
+    },
+    {
+      "type": "prefer",
+      "subject": "react-hook-form useFieldArray para o formulário de criação de Operação",
+      "rationale": "Resolve diretamente NFR-1 (data entry rápido) e FR-6 (Tab/Enter navigation) com suporte nativo a arrays dinâmicos de Legs."
+    },
+    {
+      "type": "prefer",
+      "subject": "TanStack Query v5 com queryKey por userId",
+      "rationale": "Cache por usuário garantido pela queryKey. Evita vazamento de dados entre sessões de usuários diferentes no mesmo browser."
+    },
+    {
+      "type": "prefer",
+      "subject": "zustand persist para draft de Operação",
+      "rationale": "Resolve EC-7 (perda de draft ao fechar aba) com ~10 linhas de código. Sem overhead de backend."
+    },
+    {
+      "type": "avoid",
+      "subject": "JavaScript nativo para aritmética de valores monetários",
+      "rationale": "Erro de float: (0.1 + 0.2).toFixed(2) → '0.30' parece certo mas (1.005).toFixed(2) → '1.00' (errado). Sempre usar decimal.js."
+    },
+    {
+      "type": "avoid",
+      "subject": "Supabase Realtime subscriptions no MVP",
+      "rationale": "Single-user no MVP não precisa de realtime. Adiciona complexidade de WebSocket sem benefício. Reservar para feature de colaboração futura."
+    },
+    {
+      "type": "consider",
+      "subject": "@tanstack/react-router como alternativa ao react-router-dom",
+      "rationale": "TanStack Router v1 oferece tipagem de rotas end-to-end (type-safe params, search params). Vale avaliar se a complexidade extra compensa para o tamanho do MVP."
+    },
+    {
+      "type": "consider",
+      "subject": "dayjs como alternativa ao date-fns",
+      "rationale": "Bundle menor (~2KB vs ~80KB). Se apenas operações básicas de data são necessárias, dayjs é suficiente e mais leve."
+    }
+  ],
+
+  "pnlFormulaResearch": {
+    "note": "Documentação das fórmulas de PnL do domínio — input para @data-engineer e spec.",
+    "formulas": [
+      {
+        "name": "PnL Simétrico (standard matched betting)",
+        "formula": "pnl = grossReturnFixo - soma(stake_i para todas legs onde isFreebet=false)",
+        "example": "grossReturn=85, stakes=[20, 39] (ambas reais) → pnl = 85 - 59 = 26.00",
+        "decimalJs": "new Decimal(grossReturn).minus(stakes.reduce((acc, s) => acc.plus(s), new Decimal(0)))"
+      },
+      {
+        "name": "PnL Assimétrico (Freebet com casa da promoção)",
+        "formula": "pnl(leg_i ganha) = leg_i.grossReturn - soma(stake_j para todas legs onde isFreebet=false)",
+        "example": "Casa1: stake=100 grossReturn=200 | Casa2: stake=20 grossReturn=85 | Casa3: stake=39 grossReturn=85\n→ Se Casa1 ganha: 200 - (100+20+39) = +41\n→ Se Casa2 ganha: 85 - (100+20+39) = -74\n→ Se Casa3 ganha: 85 - (100+20+39) = -74",
+        "decimalJs": "const totalCusto = legs.filter(l => !l.isFreebet).reduce((acc, l) => acc.plus(l.stake), new Decimal(0));\nconst cenarios = legs.map(l => ({ casa: l.casaId, pnl: new Decimal(l.grossReturn).minus(totalCusto).toNumber() }));"
+      },
+      {
+        "name": "PnL Freebet SNR",
+        "formula": "custo da leg = 0 (isFreebet=true). grossReturn = valor efetivamente recebido (stake * (odd - 1), mas no MVP o usuário informa diretamente)",
+        "example": "Freebet R$100 odd 3.0 → grossReturn = 100*(3.0-1) = 200. Custo = 0.",
+        "decimalJs": "// isFreebet=true: stake não entra no totalCusto. grossReturn é informado pelo usuário no MVP."
+      },
+      {
+        "name": "PnL Duplo Green",
+        "formula": "Se isDoubleGreen=true, grossReturn efetivo da leg = grossReturn * 2",
+        "example": "Leg com grossReturn=85, isDoubleGreen=true → contribui com 170 no cálculo de PnL",
+        "decimalJs": "const effectiveReturn = leg.isDoubleGreen ? new Decimal(leg.grossReturn).times(2) : new Decimal(leg.grossReturn);"
+      }
+    ]
+  },
+
+  "researchNotes": "Projeto greenfield com stack moderna e bem suportada. Maior risco técnico é: (1) decimal.js para precisão financeira — CRÍTICO, não negociável; (2) RLS do Supabase configurada corretamente — @data-engineer deve revisar antes de deploy. Stack escolhida tem excelente compatibilidade mútua. Estimativa de bundle size aceitável para mobile: React+Vite base ~100KB gzip + deps ~80KB = ~180KB total (bom para mobile). Pontos de atenção: verificar versão atual do auth helper Supabase para Vite SPA, e confirmar que react-hook-form v7 com useFieldArray suporta o fluxo de Tab+Enter para N legs sem workarounds significativos."
+}

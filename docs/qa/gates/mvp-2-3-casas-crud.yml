@@ -1,0 +1,12 @@
+schema: 1
+story: 'mvp-2.3'
+gate: CONCERNS
+status_reason: 'AC-1 through AC-4 and AC-6 verified — implementation is correct. AC-5 (browser end-to-end test) deferred due to REL-001: Supabase Cloud unreachable from work network.'
+reviewer: 'Quinn'
+updated: '2026-05-18T14:00:00Z'
+top_issues:
+  - id: 'REL-001'
+    severity: medium
+    finding: 'AC-5 browser verification (create → appears, deactivate → disappears) could not be executed — Supabase Cloud endpoint is blocked by work network firewall'
+    suggested_action: 'Execute browser end-to-end verification when migrating to Supabase Cloud at project end (user-approved deferral)'
+waiver: { active: false }

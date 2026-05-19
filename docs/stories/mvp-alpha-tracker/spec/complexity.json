@@ -1,0 +1,77 @@
+{
+  "storyId": "mvp-alpha-tracker",
+  "assessedAt": "2026-05-18T09:20:00.000Z",
+  "assessedBy": "@architect",
+  "project": "AlphaTracker — Sports Arbitrage & Matched Betting Tracker",
+
+  "result": "COMPLEX",
+  "overridden": false,
+
+  "dimensions": {
+    "scope": {
+      "score": 5,
+      "notes": "MVP inteiro construído do zero. Estimativa: 30-50 arquivos entre pages, componentes React, hooks/queries, definições de schema SQL, migrations, config de auth, variáveis de ambiente e configuração de deploy. Nenhum arquivo pre-existente para reutilizar — codebase greenfield completo."
+    },
+    "integration": {
+      "score": 3,
+      "notes": "2 serviços externos: (1) Supabase Auth para autenticação e gestão de sessão, (2) Supabase Postgres como banco de dados cloud. Sem APIs de terceiros (odds, bookmakers), sem webhooks, sem pagamentos no MVP. Integração simples mas obrigatória desde o primeiro commit."
+    },
+    "infrastructure": {
+      "score": 5,
+      "notes": "Infraestrutura zero → cloud completo. Requer: criação de projeto Supabase, configuração de banco Postgres, definição de RLS policies para multi-tenancy, setup de Auth providers, deploy de frontend no Vercel, configuração de variáveis de ambiente, domínio customizado (futuro). Tudo novo."
+    },
+    "knowledge": {
+      "score": 3,
+      "notes": "Stack web padrão (React + TypeScript + Vite + Supabase) com documentação sólida. O ponto de atenção é o domínio de matched betting: regras de Freebet SNR, PnL assimétrico por leg, Duplo Green (pagamento duplo), tipos de operação distintos. Domínio nicho mas bem documentado nos requirements.json."
+    },
+    "risk": {
+      "score": 3,
+      "notes": "Dois riscos relevantes: (1) Cálculo incorreto de PnL representa perda financeira real para o usuário — fórmulas devem ser testadas exaustivamente. (2) RLS policies incorretas expõem dados financeiros entre usuários — crítico para monetização futura. Blast radius atual é baixo (single user no MVP), mas a fundação de segurança deve estar correta desde o início."
+    }
+  },
+
+  "totalScore": 19,
+
+  "pipelinePhases": [
+    "gather",
+    "assess",
+    "research",
+    "spec",
+    "critique_1",
+    "revise",
+    "critique_2",
+    "plan"
+  ],
+
+  "flags": [
+    "ARCHITECTURAL_DECISION_REQUIRED: Stack definida nesta fase — React + Vite (SPA) + Supabase. Registrar como ADR antes de iniciar spec.",
+    "BREAK_INTO_EPICS: 12 FRs de MVP devem ser quebrados em Epics (ex: Epic 1 - Fundação/Auth, Epic 2 - Core CRUD, Epic 3 - PnL Engine, Epic 4 - Dashboards) antes de criar stories.",
+    "RLS_DESIGN_FIRST: RLS policies no Supabase devem ser desenhadas por @data-engineer ANTES da implementação. Multi-tenancy incorreto é difícil de corrigir depois.",
+    "PNL_FORMULA_VALIDATION: Fórmulas de PnL (simétrico, assimétrico, Freebet SNR, Duplo Green) devem ter testes unitários completos antes de qualquer feature de dashboard.",
+    "OPEN_QUESTION_RESOLVED: OQ-1 (Stack) → React + Vite. OQ-2 (Auth/DB) → Supabase. Registrar no requirements.json.",
+    "OPEN_QUESTION_PENDING: OQ-3 (Duplo Green UX), OQ-4 (Freebet SR), OQ-5 (Draft recovery) permanecem para @ux-design-expert e próxima conversa com usuário."
+  ],
+
+  "architectureDecisions": {
+    "stack": {
+      "frontend": "React 18 + TypeScript + Vite",
+      "styling": "Tailwind CSS",
+      "stateManagement": "TanStack Query (server state) + Zustand (UI state)",
+      "backend": "Supabase (Postgres + Auth + RLS + Realtime)",
+      "deploy": "Vercel (frontend) + Supabase Cloud (backend)"
+    },
+    "rationale": {
+      "spaOverNextjs": "Ferramenta financeira privada sem necessidade de SEO. SPA garante navegação instantânea, cálculo de PnL 100% no cliente (zero latência), e draft recovery trivial via localStorage.",
+      "supabaseChoice": "Resolve OQ-1 e OQ-2 simultaneamente: Postgres relacional (mapeamento direto do domain model), Auth nativo, e RLS nativa para multi-tenancy sem código de isolamento no app. Uma plataforma, sem backend separado.",
+      "tailwindChoice": "Data entry ultrarrápido (NFR-1, NFR-2) exige componentes de formulário precisos e responsivos. Tailwind permite iteração rápida de UI sem overhead de CSS customizado."
+    }
+  },
+
+  "estimatedEffort": "3-5 semanas (MVP completo, single developer)",
+  "recommendedEpicBreakdown": [
+    "Epic 1 — Fundação: setup de projeto, auth, CRUD de Casas, deploy base",
+    "Epic 2 — Core de Operações: registro de Operações + Legs, regra Freebet SNR, data entry com Tab/Enter",
+    "Epic 3 — PnL Engine: cálculo de PnL (simétrico, assimétrico, Duplo Green), marcação de resultados",
+    "Epic 4 — Dashboards: agregações diário/semanal/mensal, filtros por tipo de operação"
+  ]
+}

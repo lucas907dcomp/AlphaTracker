@@ -1,0 +1,518 @@
+{
+  "storyId": "mvp-alpha-tracker",
+  "gatheredAt": "2026-05-18T08:56:00.000Z",
+  "source": "user",
+  "gatheredBy": "@pm",
+  "elicitationVersion": "2.0",
+  "project": "AlphaTracker — Sports Arbitrage & Matched Betting Tracker",
+
+  "functional": [
+    {
+      "id": "FR-1",
+      "description": "CRUD completo de Casas de Aposta: cadastrar, listar, editar e desativar casas (ex: Betano, Bet365). Casas são reutilizadas em todas as Operações.",
+      "priority": "P0",
+      "rationale": "Base de dados mestre — toda Aposta/Leg referencia uma Casa.",
+      "acceptance": [
+        "AC-1.1: Usuário pode criar uma Casa com nome único.",
+        "AC-1.2: Casas aparecem em dropdown ao criar Apostas.",
+        "AC-1.3: Usuário pode editar nome de uma Casa existente.",
+        "AC-1.4: Usuário pode desativar uma Casa sem perder histórico."
+      ]
+    },
+    {
+      "id": "FR-2",
+      "description": "Registro de Operações com múltiplas Apostas (Legs). Cada Operação tem tipo, data, status e um conjunto de Legs onde cada Leg é feita em uma Casa diferente.",
+      "priority": "P0",
+      "rationale": "Núcleo do sistema — toda anotação de matched betting é uma Operação.",
+      "acceptance": [
+        "AC-2.1: Operação pode ter N Legs (mínimo 1).",
+        "AC-2.2: Cada Leg referencia uma Casa, tem stake e gross_return.",
+        "AC-2.3: Operação tem status Pendente ou Concluída.",
+        "AC-2.4: Data da operação é registrada (default: hoje)."
+      ]
+    },
+    {
+      "id": "FR-3",
+      "description": "5 tipos de Operação: Freebet, Extração, SuperOdd, TentativaDuplo, Aposta. Cada tipo tem comportamento distinto de PnL e contexto de uso.",
+      "priority": "P0",
+      "rationale": "Usuário precisa categorizar para análise e relatórios segmentados.",
+      "acceptance": [
+        "AC-3.1: Criação de Operação exige seleção de tipo.",
+        "AC-3.2: Tipo 'Freebet' indica operação de desbloqueio (geralmente resulta em perda parcial).",
+        "AC-3.3: Tipo 'Extração' indica resgate da freebet (geralmente lucro).",
+        "AC-3.4: Tipo 'SuperOdd' indica aproveitamento de odd desregulada.",
+        "AC-3.5: Tipo 'TentativaDuplo' indica aposta especulativa em duplo green.",
+        "AC-3.6: Tipo 'Aposta' indica aposta simples esporádica."
+      ]
+    },
+    {
+      "id": "FR-4",
+      "description": "Regra Freebet SNR: campo booleano isFreebet por Leg. Se verdadeiro, custo real da Leg = 0 (stake não sai do bolso); gross_return é o valor efetivamente recebido pela freebet (não inclui devolução do stake).",
+      "priority": "P0",
+      "rationale": "Diferença central entre aposta normal e freebet SNR afeta cálculo de PnL.",
+      "acceptance": [
+        "AC-4.1: Given Leg com isFreebet=true, When sistema calcula custo, Then custo = 0.",
+        "AC-4.2: gross_return da Leg freebet é informado diretamente pelo usuário (sem cálculo de odds no MVP).",
+        "AC-4.3: PnL da Operação desconta apenas stakes de Legs com isFreebet=false."
+      ]
+    },
+    {
+      "id": "FR-5",
+      "description": "Cálculo de PnL por Operação. Modelo base: PnL = gross_return_da_leg_ganhadora - soma(stake de todas as legs com isFreebet=false). Para operações com retorno assimétrico por leg, o sistema mostra PnL por cenário de resultado.",
+      "priority": "P0",
+      "rationale": "Métrica principal do usuário — saber quanto lucrou ou perdeu por operação.",
+      "acceptance": [
+        "AC-5.1: PnL de Operação Concluída = gross_return_leg_ganhadora - soma(stakes_nao_freebet).",
+        "AC-5.2: Operação Pendente exibe PnL estimado para cada cenário possível.",
+        "AC-5.3: Operação com retorno simétrico (valor_pago_fixo) exibe PnL único.",
+        "AC-5.4: Operação com retorno assimétrico exibe PnL por Leg (cenário A, B, C)."
+      ]
+    },
+    {
+      "id": "FR-6",
+      "description": "Fluxo de Data Entry ultrarrápido: usuário seleciona tipo, informa Valor Pago Fixo (retorno bruto igual para qualquer casa ganhadora), depois adiciona Legs sequencialmente (casa + stake) via Tab/Enter.",
+      "priority": "P0",
+      "rationale": "UX crítica — operações são anotadas na rua, em tempo real, no celular.",
+      "acceptance": [
+        "AC-6.1: Usuário consegue registrar uma operação simétrica com 3 a 5 Legs em menos de 15 interações. Padrão é 3 casas, mas 4 e 5 casas são suportadas sem fricção adicional.",
+        "AC-6.2: Tab/Enter avança para próximo campo sem uso de mouse.",
+        "AC-6.3: Adição de nova Leg ao pressionar Enter no último campo da Leg anterior.",
+        "AC-6.4: PnL atualiza em tempo real conforme usuário preenche os campos."
+      ]
+    },
+    {
+      "id": "FR-7",
+      "description": "Suporte a Operação Freebet assimétrica: Casa da promoção paga retorno maior; demais casas cobrem pagando retorno menor. Cada Leg tem seu próprio gross_return individualmente configurável.",
+      "priority": "P0",
+      "rationale": "Frequente em operações de desbloqueio — sem isso, o PnL calculado seria incorreto.",
+      "acceptance": [
+        "AC-7.1: Usuário pode informar gross_return individualmente por Leg (override do valor_pago_fixo).",
+        "AC-7.2: Sistema exibe PnL para cada cenário: 'Se Casa 1 ganha: +R$41 | Se Casa 2 ganha: -R$74'.",
+        "AC-7.3: Leg da casa da promoção é identificável visualmente no registro."
+      ]
+    },
+    {
+      "id": "FR-8",
+      "description": "Suporte a Duplo Green (jackpot): quando uma Leg tem pagamento duplo (paga antecipado no placar 2-0 e paga novamente no resultado final). Leg marcada como isDoubleGreen duplica o gross_return efetivo.",
+      "priority": "P1",
+      "rationale": "Evento raro mas de alto impacto financeiro — precisa ser registrado corretamente.",
+      "acceptance": [
+        "AC-8.1: Leg pode ser marcada como isDoubleGreen após a operação ser criada.",
+        "AC-8.2: Quando isDoubleGreen=true, PnL da operação considera gross_return * 2 para aquela Leg.",
+        "AC-8.3: Dashboard sinaliza operações que tiveram Duplo Green."
+      ]
+    },
+    {
+      "id": "FR-9",
+      "description": "Dashboards de PnL agregado: Diário, Semanal e Mensal. Exibe total de lucro/prejuízo, quantidade de operações, e breakdown por tipo de operação.",
+      "priority": "P0",
+      "rationale": "Controle financeiro — usuário precisa saber performance ao longo do tempo.",
+      "acceptance": [
+        "AC-9.1: Dashboard Diário exibe PnL do dia corrente e histórico dos últimos 30 dias.",
+        "AC-9.2: Dashboard Semanal exibe PnL por semana dos últimos 3 meses.",
+        "AC-9.3: Dashboard Mensal exibe PnL por mês do histórico completo.",
+        "AC-9.4: Filtro por tipo de operação (Freebet, Extração, SuperOdd, etc.).",
+        "AC-9.5: Operações Pendentes são excluídas ou sinalizadas nos totais."
+      ]
+    },
+    {
+      "id": "FR-10",
+      "description": "Autenticação e login de usuário. Sistema multi-tenant desde o início para suportar futura comercialização do acesso.",
+      "priority": "P1",
+      "rationale": "Requisito estratégico para monetização futura — cada usuário vê apenas seus próprios dados.",
+      "acceptance": [
+        "AC-10.1: Usuário faz login com email/senha ou provider social (a definir com @architect).",
+        "AC-10.2: Todos os dados de Casas, Operações e Apostas são isolados por userId.",
+        "AC-10.3: Sessão persiste entre acessos (não exige login a cada visita)."
+      ]
+    },
+    {
+      "id": "FR-11",
+      "description": "Edição e exclusão de Apostas (Legs) e Operações após criação. Exclusão é a forma de lidar com apostas canceladas/void pelas casas.",
+      "priority": "P1",
+      "rationale": "Apostas são canceladas pelas casas; erros de digitação acontecem.",
+      "acceptance": [
+        "AC-11.1: Usuário pode editar stake e gross_return de uma Leg existente.",
+        "AC-11.2: Usuário pode excluir uma Leg de uma Operação.",
+        "AC-11.3: Usuário pode excluir uma Operação inteira (com todas as Legs).",
+        "AC-11.4: Exclusão exige confirmação explícita."
+      ]
+    },
+    {
+      "id": "FR-12",
+      "description": "Marcação de resultado de Operações Pendentes. Usuário volta à operação após o jogo e indica qual Leg ganhou para finalizar o cálculo de PnL.",
+      "priority": "P0",
+      "rationale": "Operações não têm resultado imediato — jogo acontece depois da anotação.",
+      "acceptance": [
+        "AC-12.1: Lista de Operações Pendentes acessível rapidamente.",
+        "AC-12.2: Usuário seleciona qual Leg ganhou; sistema calcula e persiste PnL.",
+        "AC-12.3: Status da Operação muda de Pendente para Concluída após marcação.",
+        "AC-12.4: Operação onde o resultado já é conhecido antes do jogo pode ser marcada na criação."
+      ]
+    }
+  ],
+
+  "nonFunctional": [
+    {
+      "id": "NFR-1",
+      "category": "usability",
+      "description": "Data entry ultrarrápido: registro de uma Operação com 3 Legs deve ser completável sem tirar as mãos do teclado. Navegação por Tab/Enter obrigatória.",
+      "metric": "Operação simétrica com 3 Legs registrada em menos de 10 interações de campo."
+    },
+    {
+      "id": "NFR-2",
+      "category": "usability",
+      "description": "Interface responsiva e mobile-first. Anotações são feitas na rua via smartphone enquanto se opera nas casas de apostas.",
+      "metric": "Todos os fluxos críticos (criar operação, marcar resultado) funcionam em viewport 375px sem scroll horizontal."
+    },
+    {
+      "id": "NFR-3",
+      "category": "scalability",
+      "description": "Arquitetura multi-tenant desde o início. Dados isolados por usuário para suportar comercialização futura sem refatoração de banco de dados.",
+      "metric": "Row-level security ou equivalente garantindo que usuário A nunca acesse dados do usuário B."
+    },
+    {
+      "id": "NFR-4",
+      "category": "performance",
+      "description": "Interface fluida sem atraso perceptível. Cálculo de PnL em tempo real enquanto usuário preenche campos.",
+      "metric": "Cálculo de PnL atualiza em < 100ms após mudança de input (cálculo local, sem round-trip ao servidor)."
+    },
+    {
+      "id": "NFR-5",
+      "category": "reliability",
+      "description": "Persistência garantida: dados não podem ser perdidos por navegação acidental ou fechamento de aba.",
+      "metric": "Draft de operação em preenchimento persiste localmente (localStorage/cache) como fallback."
+    }
+  ],
+
+  "constraints": [
+    {
+      "id": "CON-1",
+      "type": "technical",
+      "description": "Aplicação web cloud (não desktop, não app nativo). Deve funcionar no browser mobile sem instalação.",
+      "impact": "Elimina Electron/Tauri. Stack deve ser web-first com deploy em cloud."
+    },
+    {
+      "id": "CON-2",
+      "type": "business",
+      "description": "MVP sem campo de odds. Usuário informa diretamente o gross_return por Leg. Calculadora de odds é feature futura.",
+      "impact": "Simplifica o modelo de dados no MVP. Elimina dependência de cálculo de odds para PnL básico."
+    },
+    {
+      "id": "CON-3",
+      "type": "technical",
+      "description": "Valores monetários com precisão de até 2 casas decimais (ex: R$ 10,50). Odds futuras com até 2 casas decimais (ex: 3.25).",
+      "impact": "Todos os campos numéricos monetários devem aceitar e exibir 2 casas decimais."
+    },
+    {
+      "id": "CON-4",
+      "type": "business",
+      "description": "Autenticação obrigatória mesmo no MVP. Sistema nasce multi-tenant para viabilizar venda de acesso no futuro sem reescrita.",
+      "impact": "Nenhuma rota ou dado pode existir sem userId. Aumenta complexidade inicial mas evita débito técnico crítico."
+    },
+    {
+      "id": "CON-5",
+      "type": "technical",
+      "description": "Preferência do usuário por SPA (Vite/React) ao invés de SSR (Next.js). Decisão final delegada a @architect considerando requisitos de auth e cloud.",
+      "impact": "Define se backend é separado (SPA + API) ou monolítico (Next.js full-stack)."
+    }
+  ],
+
+  "assumptions": [
+    {
+      "id": "ASM-1",
+      "description": "MVP é single-user na prática (apenas o dono usa), mas a arquitetura suporta multi-usuário desde o início.",
+      "risk_if_wrong": "Se arquitetura não suportar multi-tenant desde o início, migração futura será custosa.",
+      "validation_needed": false
+    },
+    {
+      "id": "ASM-2",
+      "description": "Interface e todos os textos em português brasileiro.",
+      "risk_if_wrong": "Baixo risco — é uma preferência clara do usuário.",
+      "validation_needed": false
+    },
+    {
+      "id": "ASM-3",
+      "description": "Apenas Freebet SNR (Stake Not Returned) está no escopo. Freebet SR (Stake Returned, onde o stake é devolvido junto com o prêmio) não está contemplada.",
+      "risk_if_wrong": "Médio — se SR freebets forem comuns, a fórmula de PnL precisará de ajuste.",
+      "validation_needed": true
+    },
+    {
+      "id": "ASM-4",
+      "description": "Apostas canceladas pelas casas são tratadas por exclusão manual do registro pelo usuário. Sem status 'Void' formal no MVP.",
+      "risk_if_wrong": "Histórico perde granularidade — exclusão não distingue 'cancelado' de 'erro de digitação'.",
+      "validation_needed": false
+    },
+    {
+      "id": "ASM-5",
+      "description": "Taxas bancárias, taxas de saque e bônus de depósito não são rastreados no MVP. PnL é puramente baseado em apostas.",
+      "risk_if_wrong": "PnL real difere do PnL calculado pelo sistema se taxas forem relevantes.",
+      "validation_needed": false
+    }
+  ],
+
+  "domainModel": [
+    {
+      "id": "DM-1",
+      "entity": "User",
+      "attributes": ["id", "email", "passwordHash", "createdAt"],
+      "relationships": [
+        { "type": "has_many", "target": "Casa" },
+        { "type": "has_many", "target": "Operacao" }
+      ]
+    },
+    {
+      "id": "DM-2",
+      "entity": "Casa",
+      "attributes": ["id", "userId", "nome", "isActive", "createdAt"],
+      "relationships": [
+        { "type": "belongs_to", "target": "User" },
+        { "type": "has_many", "target": "Aposta" }
+      ]
+    },
+    {
+      "id": "DM-3",
+      "entity": "Operacao",
+      "attributes": [
+        "id",
+        "userId",
+        "tipo (Freebet|Extracao|SuperOdd|TentativaDuplo|Aposta)",
+        "data",
+        "status (Pendente|Concluida)",
+        "valorPagoFixo (opcional — null se retorno assimétrico)",
+        "pnl (calculado, null se Pendente)",
+        "notas",
+        "createdAt"
+      ],
+      "relationships": [
+        { "type": "belongs_to", "target": "User" },
+        { "type": "has_many", "target": "Aposta" }
+      ]
+    },
+    {
+      "id": "DM-4",
+      "entity": "Aposta",
+      "attributes": [
+        "id",
+        "operacaoId",
+        "casaId",
+        "stake",
+        "grossReturn",
+        "isFreebet (boolean)",
+        "isDoubleGreen (boolean, default false)",
+        "resultado (Ganhou|Perdeu|Pendente)",
+        "createdAt"
+      ],
+      "relationships": [
+        { "type": "belongs_to", "target": "Operacao" },
+        { "type": "belongs_to", "target": "Casa" }
+      ]
+    }
+  ],
+
+  "interactions": [
+    {
+      "id": "INT-1",
+      "trigger": "Usuário quer anotar nova operação (na rua, no celular)",
+      "flow": [
+        "1. Toca em 'Nova Operação' (botão fixo/FAB)",
+        "2. Seleciona tipo: Freebet | Extração | SuperOdd | Tentativa Duplo | Aposta",
+        "3. (Opcional) Informa Valor Pago Fixo para operação simétrica",
+        "4. Adiciona Leg 1: seleciona Casa → informa stake → (opcional) gross_return individual → Tab/Enter",
+        "5. Sistema mostra PnL estimado em tempo real",
+        "6. Repete passo 4 para Legs adicionais",
+        "7. Marca se alguma Leg é isFreebet",
+        "8. Salva (Enter ou botão Salvar)",
+        "9. Se resultado já conhecido: marca leg ganhadora imediatamente"
+      ],
+      "states": {
+        "loading": "Botão Salvar mostra spinner; campos bloqueados durante persistência",
+        "error": "Toast de erro inline; formulário permanece preenchido",
+        "empty": "Tela inicial exibe botão 'Nova Operação' em destaque com instrução"
+      }
+    },
+    {
+      "id": "INT-2",
+      "trigger": "Jogo terminou — usuário quer marcar resultado de operação pendente",
+      "flow": [
+        "1. Acessa lista de Operações Pendentes (atalho no dashboard ou filtro)",
+        "2. Toca na Operação",
+        "3. Visualiza as Legs com PnL por cenário",
+        "4. Seleciona qual Leg ganhou (ou 'Todas perderam')",
+        "5. Sistema calcula PnL final e atualiza status para Concluída",
+        "6. Retorna para a lista"
+      ],
+      "states": {
+        "loading": "Indicador de salvamento",
+        "error": "Permite tentar novamente sem perder seleção",
+        "empty": "Mensagem 'Nenhuma operação pendente'"
+      }
+    },
+    {
+      "id": "INT-3",
+      "trigger": "Usuário quer ver performance financeira",
+      "flow": [
+        "1. Acessa Dashboard (tab principal)",
+        "2. Visualiza PnL do dia (default)",
+        "3. Alterna entre Diário / Semanal / Mensal via toggle",
+        "4. (Opcional) Filtra por tipo de operação"
+      ],
+      "states": {
+        "loading": "Skeleton loader nas métricas",
+        "error": "Exibe último dado em cache com aviso de erro",
+        "empty": "Mensagem encorajadora + CTA para criar primeira operação"
+      }
+    }
+  ],
+
+  "edgeCases": [
+    {
+      "id": "EC-1",
+      "scenario": "Operação criada mas resultado do jogo ainda não aconteceu",
+      "handling": "Status=Pendente. Dashboard exclui ou sinaliza PnL não confirmado. Lista de pendentes é destaque no app.",
+      "severity": "medium"
+    },
+    {
+      "id": "EC-2",
+      "scenario": "Operação Freebet assimétrica onde cada leg tem gross_return diferente",
+      "handling": "valorPagoFixo=null; cada Aposta tem seu próprio grossReturn. PnL exibido por cenário antes da conclusão.",
+      "severity": "high"
+    },
+    {
+      "id": "EC-3",
+      "scenario": "Duplo Green: Leg paga antecipado (placar 2-0) e paga novamente no resultado final",
+      "handling": "isDoubleGreen=true dobra gross_return efetivo da Leg. Usuário marca manualmente após o evento.",
+      "severity": "medium"
+    },
+    {
+      "id": "EC-4",
+      "scenario": "Casa desativada ainda referenciada em Operações históricas",
+      "handling": "Soft delete: Casa fica inativa (não aparece em dropdowns) mas o nome histórico é preservado.",
+      "severity": "low"
+    },
+    {
+      "id": "EC-5",
+      "scenario": "Tentativa de Duplo sem duplo green — perde o stake intencionalmente",
+      "handling": "Operação Concluída com PnL negativo esperado. Nenhum tratamento especial necessário além do tipo correto.",
+      "severity": "low"
+    },
+    {
+      "id": "EC-6",
+      "scenario": "stake=0 em Leg não-freebet ou gross_return=0",
+      "handling": "Validação no frontend impede valores <= 0. Toast de erro imediato sem bloquear outros campos.",
+      "severity": "medium"
+    },
+    {
+      "id": "EC-7",
+      "scenario": "Usuário fecha aba no meio do preenchimento da operação",
+      "handling": "Draft salvo em localStorage. Na reabertura, oferecer restauração do draft.",
+      "severity": "medium"
+    }
+  ],
+
+  "terminology": [
+    {
+      "term": "Operação",
+      "definition": "Conjunto de Apostas cobrindo resultados de um mesmo evento esportivo. Sempre tem um tipo e status.",
+      "synonyms": ["trade", "operação"],
+      "avoid": ["aposta simples (ambíguo — Aposta é um tipo específico de Operação)"]
+    },
+    {
+      "term": "Aposta",
+      "definition": "Uma única Leg dentro de uma Operação, feita em uma Casa específica. Também é o nome do tipo de Operação mais simples (aposta esporádica).",
+      "synonyms": ["leg", "perna"],
+      "avoid": ["bet (usar 'aposta' na UI em português)"]
+    },
+    {
+      "term": "Casa",
+      "definition": "Bookmaker ou exchange onde as apostas são realizadas (ex: Betano, Bet365, Sportingbet).",
+      "synonyms": ["bookmaker", "bookie", "casa de apostas"],
+      "avoid": []
+    },
+    {
+      "term": "Freebet SNR",
+      "definition": "Freebet do tipo Stake Not Returned: aposta grátis onde o valor do stake NÃO é devolvido com o prêmio. gross_return = stake * odd - stake. No MVP: gross_return informado diretamente.",
+      "synonyms": ["freebet", "aposta grátis"],
+      "avoid": ["Freebet SR (tipo diferente — stake devolvido — fora do escopo MVP)"]
+    },
+    {
+      "term": "Valor Pago Fixo",
+      "definition": "Em operações simétricas de matched betting, o retorno bruto é o mesmo independente de qual casa ganha. Esse valor fixo é o gross_return de todas as Legs.",
+      "synonyms": ["retorno fixo", "valor pago"],
+      "avoid": ["lucro fixo (é o retorno bruto, não o lucro líquido)"]
+    },
+    {
+      "term": "PnL",
+      "definition": "Profit and Loss. Lucro líquido da Operação = gross_return_da_leg_ganhadora - soma(stakes de legs não-freebet).",
+      "synonyms": ["lucro", "resultado", "P&L"],
+      "avoid": []
+    },
+    {
+      "term": "Duplo Green",
+      "definition": "Jackpot em Tentativas de Duplo: quando o placar chega a 2-0 e a casa paga antecipado, e depois o jogo muda (empate ou virada), pagando novamente. A Leg ganha duas vezes.",
+      "synonyms": ["jackpot", "double green"],
+      "avoid": []
+    },
+    {
+      "term": "Extração",
+      "definition": "Tipo de Operação onde o usuário utiliza uma Freebet já desbloqueada para extrair lucro real. Geralmente é a segunda etapa após uma Operação tipo Freebet.",
+      "synonyms": ["extração de freebet"],
+      "avoid": []
+    },
+    {
+      "term": "Tentativa de Duplo",
+      "definition": "Tipo de Operação onde o usuário aceita perda certa para ter chance de Duplo Green. Sem ganho garantido — resultado é perda ou jackpot.",
+      "synonyms": ["tentativa duplo", "duplo attempt"],
+      "avoid": []
+    }
+  ],
+
+  "openQuestions": [
+    {
+      "id": "OQ-1",
+      "question": "Stack definitiva: React + Vite (SPA) com backend separado, ou Next.js (full-stack SSR/hybrid)? Usuário prefere SPA mas decisão final é com @architect considerando auth, deploy e mobile UX.",
+      "priority": "high",
+      "blocksProgress": false,
+      "assignedTo": "@architect",
+      "resolution": "RESOLVIDO por @architect em 2026-05-18: React 18 + TypeScript + Vite (SPA). Ferramenta privada sem SEO, SPA garante data entry instantâneo e cálculo PnL 100% no cliente.",
+      "status": "resolved"
+    },
+    {
+      "id": "OQ-2",
+      "question": "Provider de Auth e banco de dados: Supabase (Postgres + Auth + RLS nativo para multi-tenant), Firebase, ou outro? Impacta diretamente CON-4 (multi-tenant).",
+      "priority": "high",
+      "blocksProgress": false,
+      "assignedTo": "@architect",
+      "resolution": "RESOLVIDO por @architect em 2026-05-18: Supabase. Postgres relacional mapeia diretamente o domain model, Auth nativo, RLS nativa para multi-tenancy. Uma plataforma, sem backend separado.",
+      "status": "resolved"
+    },
+    {
+      "id": "OQ-3",
+      "question": "Duplo Green: usuário marca isDoubleGreen manualmente após o evento, ou o sistema oferece um fluxo guiado? Impacta complexidade da UI de marcação de resultado.",
+      "priority": "medium",
+      "blocksProgress": false,
+      "assignedTo": "@ux-design-expert"
+    },
+    {
+      "id": "OQ-4",
+      "question": "Existe Freebet SR (Stake Returned) nas operações do usuário, ou apenas SNR? ASM-3 assumiu apenas SNR. Confirmar para evitar bug na fórmula de PnL.",
+      "priority": "medium",
+      "blocksProgress": false,
+      "assignedTo": "@pm"
+    },
+    {
+      "id": "OQ-5",
+      "question": "Draft recovery (EC-7): restaurar automaticamente ou perguntar ao usuário? Impacta UX da tela inicial.",
+      "priority": "low",
+      "blocksProgress": false,
+      "assignedTo": "@ux-design-expert"
+    },
+    {
+      "id": "OQ-6",
+      "question": "Calculadora de Stakes (feature futura, FORA do MVP): dado um Valor Pago desejado e as odds de cada casa, calcular automaticamente o stake ideal por Leg (incluindo variantes Freebet SNR, assimétrica e Tentativa de Duplo). Requer spec pipeline próprio quando escopo estiver claro. Arquitetura do MVP deve garantir que a calculadora possa pré-preencher o formulário de criação de Operação sem refatoração de modelo.",
+      "priority": "low",
+      "blocksProgress": false,
+      "assignedTo": "@pm (próximo sprint)"
+    }
+  ]
+}

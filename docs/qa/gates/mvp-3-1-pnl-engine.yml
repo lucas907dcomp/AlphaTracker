@@ -1,0 +1,8 @@
+schema: 1
+story: 'mvp-3.1'
+gate: PASS
+status_reason: 'All 5 ACs verified. pnl.ts implements all 4 formulas with decimal.js throughout (CON-3 compliant). dates.ts exports all 4 helpers with date-fns v3. Both files are pure functions with zero React/UI imports.'
+reviewer: 'Quinn'
+updated: '2026-05-18T14:30:00Z'
+top_issues: []
+waiver: { active: false }

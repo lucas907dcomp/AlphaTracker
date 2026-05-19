@@ -1,0 +1,16 @@
+schema: 1
+story: 'mvp-4.3'
+gate: CONCERNS
+status_reason: 'All ACs met (AC-4 browser deferred per REL-001). OperacaoForm correctly assembles Wave 4 pieces, valorPagoFixo propagation implemented, draft recovery wired via onDraftChange prop pattern. Route /operacoes/nova pre-existed and is used as-is.'
+reviewer: 'Quinn'
+updated: '2026-05-18T16:00:00Z'
+top_issues:
+  - id: 'REL-001'
+    severity: medium
+    finding: 'AC-4 browser verification (Tab/Enter 3-leg flow, draft persistence across reload) deferred per project REL-001 constraint. Requires Supabase Cloud access.'
+    suggested_action: 'Verify manually after Supabase Cloud migration. Same deferred pattern as MVP-2-3 AC-5.'
+  - id: 'MNT-001'
+    severity: low
+    finding: 'Two eslint-disable-next-line comments for react-hooks/exhaustive-deps in OperacaoForm. Both suppressions are intentional and technically correct (including fields/setValue/watch would cause infinite render loops).'
+    suggested_action: 'Document suppression rationale in a short comment above the useEffect — currently relying on convention knowledge.'
+waiver: { active: false }

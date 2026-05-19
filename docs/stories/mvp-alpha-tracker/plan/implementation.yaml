@@ -1,0 +1,677 @@
+storyId: mvp-alpha-tracker
+createdAt: "2026-05-18T11:30:00.000Z"
+createdBy: "@architect"
+status: pending
+complexity: COMPLEX
+estimatedEffort: "3-5 semanas (single developer)"
+specRef: "docs/stories/mvp-alpha-tracker/spec/spec.md"
+specVersion: 2
+
+# ─── PREREQUISITE: COMPLETED ────────────────────────────────────────────────
+# @data-engineer *design-schema mvp-alpha-tracker — DONE 2026-05-18
+# Schema design: docs/stories/mvp-alpha-tracker/plan/schema-design.md
+# Migrations:    supabase/migrations/001_create_casas.sql
+#                supabase/migrations/002_create_operacoes.sql
+#                supabase/migrations/003_create_apostas.sql
+# Rollbacks:     supabase/migrations/rollback/001..003_rollback.sql
+# Smoke test:    supabase/tests/smoke_test.sql
+#
+# Key additions over spec draft:
+#   + updated_at on all tables + set_updated_at() trigger function
+#   + UNIQUE (user_id, nome) on casas
+#   + CHECK (stake > 0), CHECK (gross_return > 0) on apostas
+#   + WITH CHECK on apostas RLS policy (security gap in spec draft)
+#   + TO authenticated on all RLS policies
+#   + 6 performance indexes (dashboard + dropdown hot paths)
+#   + ON DELETE RESTRICT on apostas.casa_id
+# ─────────────────────────────────────────────────────────────────────────────
+
+dependencies:
+  - name: react
+    version: "^18.3.1"
+    purpose: UI framework
+  - name: typescript
+    version: "^5.5.0"
+    purpose: Type safety
+  - name: vite
+    version: "^5.3.0"
+    purpose: Build tool + dev server
+  - name: tailwindcss
+    version: "^3.4.4"
+    purpose: Styling mobile-first
+  - name: "@tanstack/react-query"
+    version: "^5.51.0"
+    purpose: Server state + cache invalidation
+  - name: zustand
+    version: "^4.5.4"
+    purpose: UI state + draft persistence (NFR-5)
+  - name: react-hook-form
+    version: "^7.52.0"
+    purpose: Forms + useFieldArray for dynamic legs
+  - name: zod
+    version: "^3.23.8"
+    purpose: Schema validation (stake > 0, tipo enum)
+  - name: decimal.js
+    version: "^10.4.3"
+    purpose: Aritmética financeira sem float errors (CON-3 — OBRIGATÓRIO)
+  - name: react-router-dom
+    version: "^6.24.0"
+    purpose: SPA routing + AuthGuard
+  - name: recharts
+    version: "^2.12.7"
+    purpose: Gráficos de PnL no dashboard
+  - name: date-fns
+    version: "^3.6.0"
+    purpose: Agregações diário/semanal/mensal
+  - name: sonner
+    version: "^1.5.0"
+    purpose: Toast notifications
+  - name: "@supabase/supabase-js"
+    version: "^2.44.0"
+    purpose: Auth + DB client (verificar se usar @supabase/ssr para Vite SPA)
+  - name: vitest
+    version: latest
+    purpose: Unit tests — especialmente PnL engine
+  - name: "@testing-library/react"
+    version: latest
+    purpose: Component tests
+  - name: playwright
+    version: latest
+    purpose: E2E tests de navegação keyboard (Tab/Enter) e fluxos mobile
+
+phases:
+
+  # ═══════════════════════════════════════════════════════════════════
+  # PHASE 1: Foundation & Infrastructure
+  # Goal: Working Supabase connection + validated database schema
+  # ═══════════════════════════════════════════════════════════════════
+  - id: phase-1
+    name: Foundation & Infrastructure
+    description: >
+      Zero → running skeleton with complete database schema.
+      Setup Vite SPA, instalar todas as dependências, configurar Supabase client,
+      definir tipos TypeScript e schemas Zod, criar e aplicar as 3 migrations com RLS.
+      NOTA: subtasks 1.5 e 1.6 dependem da validação prévia do @data-engineer.
+    subtasks:
+
+      - id: "1.1"
+        description: Bootstrap Vite + React + TS + Tailwind project with all dependencies
+        service: infra
+        files:
+          - package.json
+          - vite.config.ts
+          - tailwind.config.ts
+        verification:
+          type: command
+          command: "npm install && npm run typecheck"
+        status: pending
+        notes: >
+          npm create vite@latest alphatracker -- --template react-ts
+          Install: tailwindcss @tailwindcss/forms tailwind-merge clsx
+          @tanstack/react-query zustand react-hook-form zod decimal.js
+          react-router-dom recharts date-fns sonner @supabase/supabase-js
+          vitest @testing-library/react playwright @vitejs/plugin-react
+
+      - id: "1.2"
+        description: TypeScript strict config + environment variables template
+        service: infra
+        files:
+          - tsconfig.json
+          - .env.example
+        verification:
+          type: command
+          command: "npm run typecheck"
+        status: pending
+        notes: >
+          .env.example: VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY obrigatórios.
+          tsconfig: strict=true, paths para imports absolutos (CON-5).
+
+      - id: "1.3"
+        description: Supabase client singleton + TypeScript domain types
+        service: frontend
+        files:
+          - src/lib/supabase.ts
+          - src/types/index.ts
+        verification:
+          type: command
+          command: "npm run typecheck"
+        status: pending
+        notes: >
+          src/lib/supabase.ts: createClient singleton.
+          src/types/index.ts: interfaces Casa, Operacao, Aposta, CenarioPnL,
+          enums OperacaoTipo, OperacaoStatus, ApostaResultado.
+          Verificar @supabase/ssr vs @supabase/auth-helpers-react para Vite SPA
+          (Risk 3 em spec Section 7).
+        dependencies: ["1.2"]
+
+      - id: "1.4"
+        description: Zod validation schemas for Casa and Operacao
+        service: frontend
+        files:
+          - src/schemas/casaSchema.ts
+          - src/schemas/operacaoSchema.ts
+        verification:
+          type: command
+          command: "npm run typecheck"
+        status: pending
+        notes: >
+          casaSchema: nome obrigatório, min 1 char.
+          operacaoSchema: tipo enum (5 valores), data, valorPagoFixo nullable,
+          legs array com stake > 0, grossReturn > 0, isFreebet boolean.
+          Se qualquer leg tem grossReturn manual → valorPagoFixo deve ser null.
+        dependencies: ["1.3"]
+
+      - id: "1.5"
+        description: Migrations 001+002 — casas + operacoes tables com RLS inline
+        service: database
+        files:
+          - supabase/migrations/001_create_casas.sql
+          - supabase/migrations/002_create_operacoes.sql
+        verification:
+          type: manual
+          instructions: >
+            Execute: supabase db push
+            Verificar no Supabase Studio:
+            - Tabela casas criada com user_id NOT NULL
+            - RLS habilitado: policy "users_own_casas" ativa
+            - Tabela operacoes com tipo CHECK e status CHECK
+            - RLS habilitado: policy "users_own_operacoes" ativa
+        status: pending
+        notes: >
+          AGUARDA validação do @data-engineer — usar SQL final gerado pelo
+          data-engineer, não o draft do spec.md. RLS inline na mesma migration.
+
+      - id: "1.6"
+        description: Migration 003 — apostas table com RLS via subquery a operacoes
+        service: database
+        files:
+          - supabase/migrations/003_create_apostas.sql
+        verification:
+          type: manual
+          instructions: >
+            Execute: supabase db push
+            Verificar no Supabase Studio:
+            - Tabela apostas criada com resultado CHECK
+            - RLS habilitado
+            - Policy "users_own_apostas" via EXISTS subquery a operacoes.user_id
+            - FK apostas.operacao_id → operacoes.id ON DELETE CASCADE
+        status: pending
+        notes: >
+          AGUARDA validação do @data-engineer.
+          Policy crítica: USING (EXISTS (SELECT 1 FROM operacoes
+          WHERE id = apostas.operacao_id AND user_id = auth.uid()))
+        dependencies: ["1.5"]
+
+  # ═══════════════════════════════════════════════════════════════════
+  # PHASE 2: Auth & Casas (Epic 1)
+  # Goal: Authenticated user can login + manage casas
+  # ═══════════════════════════════════════════════════════════════════
+  - id: phase-2
+    name: Auth & Casas (Epic 1)
+    description: >
+      Autenticação funcional com Supabase Auth.
+      CRUD de Casas com soft delete.
+      Deploy base no Vercel ao final desta fase.
+    subtasks:
+
+      - id: "2.1"
+        description: Auth hook + React Router with protected routes
+        service: frontend
+        files:
+          - src/hooks/useAuth.ts
+          - src/router.tsx
+        verification:
+          type: command
+          command: "npm run typecheck"
+        status: pending
+        notes: >
+          useAuth.ts: supabase.auth.onAuthStateChange, signIn, signOut, session state.
+          router.tsx: createBrowserRouter; rotas protegidas redirect /login se !session.
+        dependencies: ["1.3"]
+
+      - id: "2.2"
+        description: App entry point + AuthGuard wrapper component
+        service: frontend
+        files:
+          - src/main.tsx
+          - src/App.tsx
+        verification:
+          type: command
+          command: "npm run typecheck"
+        status: pending
+        notes: >
+          main.tsx: QueryClientProvider + RouterProvider.
+          App.tsx: AuthGuard verifica session, redireciona para /login.
+        dependencies: ["2.1"]
+
+      - id: "2.3"
+        description: LoginPage with email/password form
+        service: frontend
+        files:
+          - src/pages/LoginPage.tsx
+        verification:
+          type: browser
+          url: "http://localhost:5173"
+          actions:
+            - "Verify unauthenticated user is redirected to /login"
+            - "Submit login form → verify redirect to /dashboard on success"
+            - "Submit wrong credentials → verify error toast via sonner"
+        status: pending
+        dependencies: ["2.2"]
+
+      - id: "2.4"
+        description: Base UI components — Input, Button, Select with focus handling
+        service: frontend
+        files:
+          - src/components/ui/Input.tsx
+          - src/components/ui/Button.tsx
+          - src/components/ui/Select.tsx
+        verification:
+          type: command
+          command: "npm run typecheck"
+        status: pending
+        notes: >
+          Input.tsx: onKeyDown handler para Tab/Enter navigation (NFR-1).
+          Select.tsx: para dropdown de casas nos LegRows.
+
+      - id: "2.5"
+        description: Casas hook + CasaForm component
+        service: frontend
+        files:
+          - src/hooks/useCasas.ts
+          - src/components/casas/CasaForm.tsx
+        verification:
+          type: command
+          command: "npm run typecheck"
+        status: pending
+        notes: >
+          useCasas.ts: useQuery (list active casas) + useMutation (create/update/deactivate).
+          TanStack Query invalidateQueries on mutation success.
+          CasaForm.tsx: react-hook-form + zod resolver.
+        dependencies: ["1.5", "2.1"]
+
+      - id: "2.6"
+        description: CasaList component + CasasPage
+        service: frontend
+        files:
+          - src/components/casas/CasaList.tsx
+          - src/pages/CasasPage.tsx
+        verification:
+          type: browser
+          url: "http://localhost:5173/casas"
+          actions:
+            - "Criar casa 'Betano' → aparece na lista"
+            - "Desativar casa → some do dropdown de novas apostas"
+            - "Histórico de operações preserva nome da casa desativada"
+        status: pending
+        dependencies: ["2.5"]
+
+  # ═══════════════════════════════════════════════════════════════════
+  # PHASE 3: PnL Engine (Epic 3 — Core)
+  # Goal: PnL calculation engine fully tested BEFORE any UI depends on it
+  # ═══════════════════════════════════════════════════════════════════
+  - id: phase-3
+    name: PnL Engine (Epic 3 — Core)
+    description: >
+      Motor de cálculo de PnL com as 4 fórmulas e decimal.js.
+      Testes unitários P0 devem passar ANTES de qualquer feature de dashboard ou PnLPreview.
+      Esta fase deve preceder a fase 4 porque PnLPreview depende de pnl.ts.
+    subtasks:
+
+      - id: "3.1"
+        description: PnL engine — 4 fórmulas com decimal.js (CON-3 obrigatório)
+        service: frontend
+        files:
+          - src/lib/pnl.ts
+        verification:
+          type: command
+          command: "npm run typecheck"
+        status: pending
+        notes: >
+          Exportar: calcularCenariosPnL(apostas: Aposta[]): CenarioPnL[]
+          Fórmula 1 — Simétrico: pnl = grossReturnFixo - Σ(stake não-freebet)
+          Fórmula 2 — Assimétrico: pnl(leg_i) = leg_i.grossReturn - Σ(stake não-freebet)
+          Fórmula 3 — SNR: custoReal = isFreebet ? 0 : stake
+          Fórmula 4 — Duplo Green: grossReturnEfetivo = isDoubleGreen ? gr*2 : gr
+          CRÍTICO: usar new Decimal() para toda aritmética — NUNCA operadores nativos.
+        dependencies: ["1.3"]
+
+      - id: "3.2"
+        description: Dates utility — helpers para agregações do dashboard
+        service: frontend
+        files:
+          - src/lib/dates.ts
+        verification:
+          type: command
+          command: "npm run typecheck"
+        status: pending
+        notes: >
+          Exportar: getStartOfDay(d), getStartOfWeek(d), getStartOfMonth(d) usando date-fns.
+          isInPeriod(operacaoDate, period: 'day'|'week'|'month'): boolean
+
+      - id: "3.3"
+        description: Unit tests P0 — PnL engine (6 cenários financeiramente críticos)
+        service: frontend
+        files:
+          - src/lib/__tests__/pnl.test.ts
+        verification:
+          type: command
+          command: "npx vitest run src/lib/__tests__/pnl.test.ts"
+        status: pending
+        notes: >
+          Testes obrigatórios (todos P0):
+          1. calcularPnL — simétrico básico (grossReturnFixo - Σstakes)
+          2. calcularPnL — freebet SNR (isFreebet: custo=0)
+          3. calcularPnL — assimétrico 3 cenários (pnl diferente por leg)
+          4. calcularPnL — duplo green (grossReturn*2)
+          5. calcularPnL — precisão decimal (0.1 + 0.2 ≠ 0.3 sem decimal.js)
+          6. calcularPnL — N legs (4 e 5 casas)
+          Todos devem PASSAR antes de avançar para fase 4.
+        dependencies: ["3.1"]
+
+  # ═══════════════════════════════════════════════════════════════════
+  # PHASE 4: Operations Form (Epic 2)
+  # Goal: Register operations via Tab/Enter with real-time PnL preview
+  # ═══════════════════════════════════════════════════════════════════
+  - id: phase-4
+    name: Operations Form (Epic 2)
+    description: >
+      Formulário de nova operação com useFieldArray, Tab/Enter navigation,
+      PnL preview em tempo real, e draft recovery via Zustand localStorage.
+    subtasks:
+
+      - id: "4.1"
+        description: Operations hook — CRUD operações + legs + marcação resultado
+        service: frontend
+        files:
+          - src/hooks/useOperacoes.ts
+        verification:
+          type: command
+          command: "npm run typecheck"
+        status: pending
+        notes: >
+          useQuery: listar operações com apostas (include FK).
+          useMutation: createOperacao, updateAposta, deleteOperacao, marcarResultado.
+          marcarResultado: atualiza apostas.resultado + calcula pnl final + status Concluída.
+          invalidateQueries(['operacoes']) e invalidateQueries(['dashboard']) on success.
+        dependencies: ["1.6", "2.1"]
+
+      - id: "4.2"
+        description: Draft persist store with Zustand + localStorage
+        service: frontend
+        files:
+          - src/stores/operacaoDraftStore.ts
+        verification:
+          type: command
+          command: "npm run typecheck"
+        status: pending
+        notes: >
+          zustand/middleware persist com name: 'operacao-draft'.
+          Estado: draft (Partial<OperacaoFormData> | null).
+          Ações: setDraft(data), clearDraft().
+          Recovery automático ao montar NovaOperacaoPage.
+
+      - id: "4.3"
+        description: LegRow component with Tab/Enter keyboard navigation (NFR-1)
+        service: frontend
+        files:
+          - src/components/operacoes/LegRow.tsx
+        verification:
+          type: command
+          command: "npm run typecheck"
+        status: pending
+        notes: >
+          Props: index, control (react-hook-form), onEnterLastField.
+          Tab: casa → stake → grossReturn → isFreebet → isDoubleGreen → next leg.
+          Enter no último campo: onEnterLastField() adiciona nova leg.
+          grossReturn: visível sempre (usuário informa diretamente — sem odds no MVP).
+          isFreebet toggle: muda label de custo para R$ 0.
+        dependencies: ["2.4", "3.1"]
+
+      - id: "4.4"
+        description: PnLPreview component — real-time calculation display (NFR-4)
+        service: frontend
+        files:
+          - src/components/operacoes/PnLPreview.tsx
+        verification:
+          type: command
+          command: "npm run typecheck"
+        status: pending
+        notes: >
+          Props: apostas (watch de useFieldArray).
+          Chama calcularCenariosPnL() a cada render — 100% client-side, < 100ms.
+          Exibe tabela de cenários: Casa | PnL se ganhar.
+          Verde para PnL > 0, vermelho para PnL < 0.
+          Assimétrico: cada leg tem linha própria.
+        dependencies: ["3.1"]
+
+      - id: "4.5"
+        description: OperacaoForm with useFieldArray + valorPagoFixo propagation
+        service: frontend
+        files:
+          - src/components/operacoes/OperacaoForm.tsx
+        verification:
+          type: command
+          command: "npm run typecheck"
+        status: pending
+        notes: >
+          useFieldArray: legs dinâmicas (append/remove).
+          Tipo selector: 5 valores enum (Freebet, Extracao, SuperOdd, TentativaDuplo, Aposta).
+          valorPagoFixo: quando preenchido, propaga para todas as legs como grossReturn.
+          Zod + hookform/resolvers para validação em tempo real.
+        dependencies: ["4.3", "4.4"]
+
+      - id: "4.6"
+        description: NovaOperacaoPage — complete new operation flow
+        service: frontend
+        files:
+          - src/pages/NovaOperacaoPage.tsx
+        verification:
+          type: browser
+          url: "http://localhost:5173/operacoes/nova"
+          actions:
+            - "Selecionar tipo Extração, valorPagoFixo 85, Tab"
+            - "Casa Betano, stake 20, Enter → leg 2 foca automaticamente"
+            - "Casa Bet365, stake 39, Enter → leg 3 foca"
+            - "Casa Sportingbet, stake 26, Enter → salvar"
+            - "Verificar PnLPreview atualiza em cada campo"
+            - "Verificar operação salva com status Pendente"
+            - "Fechar aba e reabrir → draft restaurado"
+        status: pending
+        dependencies: ["4.2", "4.5", "4.1"]
+
+  # ═══════════════════════════════════════════════════════════════════
+  # PHASE 5: Results & Operations Management (Epic 3)
+  # Goal: Mark results, view operations, complete the operations flow
+  # ═══════════════════════════════════════════════════════════════════
+  - id: phase-5
+    name: Results & Operations Management (Epic 3)
+    description: >
+      Modal de marcação de resultado (Pendente → Concluída),
+      lista de operações com PnL definitivo visível,
+      OperacoesPage integrada com todas as ações.
+    subtasks:
+
+      - id: "5.1"
+        description: ResultadoModal — mark leg winner and finalize PnL
+        service: frontend
+        files:
+          - src/components/operacoes/ResultadoModal.tsx
+        verification:
+          type: command
+          command: "npm run typecheck"
+        status: pending
+        notes: >
+          Props: operacao, onClose.
+          UI: lista de legs com radio buttons (Ganhou/Perdeu).
+          On confirm: chama marcarResultado (subtask 4.1) → atualiza pnl definitivo.
+          Pendente → Concluída automático ao confirmar.
+        dependencies: ["4.1"]
+
+      - id: "5.2"
+        description: OperacaoCard + OperacaoList components
+        service: frontend
+        files:
+          - src/components/operacoes/OperacaoCard.tsx
+          - src/components/operacoes/OperacaoList.tsx
+        verification:
+          type: command
+          command: "npm run typecheck"
+        status: pending
+        notes: >
+          OperacaoCard: status chip (Pendente/Concluída), tipo badge, data.
+          Se Concluída: exibe PnL definitivo (verde/vermelho).
+          Se Pendente: exibe cenários PnL (tabela de possibilidades).
+          isDoubleGreen: badge visual na leg correspondente.
+          OperacaoList: TanStack Query com loading/empty states.
+
+      - id: "5.3"
+        description: OperacoesPage — list, filter, and manage operations
+        service: frontend
+        files:
+          - src/pages/OperacoesPage.tsx
+        verification:
+          type: browser
+          url: "http://localhost:5173/operacoes"
+          actions:
+            - "Listar operações criadas — pendentes e concluídas visíveis"
+            - "Abrir ResultadoModal via operação Pendente"
+            - "Marcar leg como ganhadora → PnL definitivo aparece no card"
+            - "Status muda para Concluída na lista"
+        status: pending
+        dependencies: ["5.1", "5.2"]
+
+  # ═══════════════════════════════════════════════════════════════════
+  # PHASE 6: Dashboard & Finalization (Epic 4)
+  # Goal: Dashboards, edit/delete, integration tests, deploy
+  # ═══════════════════════════════════════════════════════════════════
+  - id: phase-6
+    name: Dashboard & Finalization (Epic 4)
+    description: >
+      Dashboards PnL diário/semanal/mensal com recharts.
+      Edição e exclusão de apostas/operações (FR-11).
+      Testes de integração + e2e Playwright.
+      Deploy final no Vercel com validação de bundle e viewport.
+    subtasks:
+
+      - id: "6.1"
+        description: Dashboard hook — PnL aggregations by period and type
+        service: frontend
+        files:
+          - src/hooks/useDashboard.ts
+        verification:
+          type: command
+          command: "npm run typecheck"
+        status: pending
+        notes: >
+          Filtrar apenas operações Concluídas (status = 'Concluida').
+          Agregação por período usando dates.ts helpers.
+          Filtro por tipo de operação (FR-9).
+          Pendentes: exibidas separadamente, NÃO somadas ao total.
+        dependencies: ["4.1", "3.2"]
+
+      - id: "6.2"
+        description: Dashboard summary card + period toggle component
+        service: frontend
+        files:
+          - src/components/dashboard/PnLSummaryCard.tsx
+          - src/components/dashboard/PeriodToggle.tsx
+        verification:
+          type: command
+          command: "npm run typecheck"
+        status: pending
+        notes: >
+          PnLSummaryCard: total PnL do período, cores verde/vermelho.
+          PeriodToggle: 3 botões Diário/Semanal/Mensal — estado local.
+
+      - id: "6.3"
+        description: Dashboard bar chart + DashboardPage
+        service: frontend
+        files:
+          - src/components/dashboard/PnLBarChart.tsx
+          - src/pages/DashboardPage.tsx
+        verification:
+          type: browser
+          url: "http://localhost:5173/dashboard"
+          actions:
+            - "Toggle Diário: exibe apenas PnL do dia corrente"
+            - "Toggle Semanal: exibe PnL da semana"
+            - "Verificar que Operações Pendentes NÃO entram no total"
+            - "Gráfico recharts renderiza com cores verde/vermelho"
+        status: pending
+        dependencies: ["6.1", "6.2"]
+
+      - id: "6.4"
+        description: Edit + delete operations — FR-11 with confirmation dialog
+        service: frontend
+        files:
+          - src/components/operacoes/OperacaoCard.tsx
+          - src/components/ui/ConfirmDialog.tsx
+        verification:
+          type: browser
+          url: "http://localhost:5173/operacoes"
+          actions:
+            - "Editar stake de uma leg → PnL recalcula automaticamente"
+            - "Excluir operação → modal de confirmação aparece"
+            - "Confirmar exclusão → operação removida da lista"
+            - "Dashboard reflete PnL atualizado sem a operação excluída"
+        status: pending
+        notes: >
+          OperacaoCard.tsx: adicionar ações Editar/Excluir.
+          Editar: re-abre form com dados da operação (extensão do subtask 4.5).
+          Excluir: ConfirmDialog → chama deleteOperacao (extensão de useOperacoes 4.1).
+          ConfirmDialog: componente genérico de confirmação com mensagem customizável.
+        dependencies: ["5.2", "4.1"]
+
+      - id: "6.5"
+        description: Integration + E2E tests — Tab/Enter, RLS isolation, cache invalidation
+        service: frontend
+        files:
+          - src/lib/__tests__/integration.test.ts
+          - playwright.config.ts
+        verification:
+          type: e2e
+          testFile: "playwright.config.ts"
+          command: "npx playwright test"
+        status: pending
+        notes: >
+          Tests obrigatórios:
+          1. Tab/Enter flow: registrar operação 3 legs sem mouse (Playwright)
+          2. RLS isolation: user B não vê dados de user A (Supabase test client)
+          3. Dashboard cache: após nova operação, total atualiza sem refresh manual
+          4. PnL assimétrico: 3 legs com grossReturn diferentes → cenários corretos
+          5. Draft recovery: fechar aba → reabrir → draft restaurado
+        dependencies: ["5.3", "6.3"]
+
+      - id: "6.6"
+        description: Vercel deploy + final validation checklist
+        service: infra
+        files:
+          - vercel.json
+        verification:
+          type: manual
+          instructions: >
+            1. npm run build → verificar sem erros
+            2. npx vite build --report → bundle < 300KB gzip (meta NFR-2)
+            3. Configurar VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY no Vercel dashboard
+            4. vercel --prod → verificar deploy bem-sucedido
+            5. Testar login em viewport 375px (iPhone SE) sem scroll horizontal
+            6. Confirmar @supabase/ssr vs @supabase/auth-helpers-react (OQ não-blocking)
+            7. Teste RLS final em produção: criar 2 contas, verificar isolamento
+        status: pending
+        notes: >
+          Lazy loading com React.lazy() para rotas pesadas (recharts).
+          vercel.json: rewrites para SPA routing (/*  → /index.html).
+        dependencies: ["6.5"]
+
+# ─── PLAN SUMMARY ───────────────────────────────────────────────────────────
+# Total phases:   6
+# Total subtasks: 30
+# Services:       frontend (22), database (3), infra (5)
+# Verifications:  command (14), browser (6), manual (4), e2e (1), (implicit: 5)
+#
+# Critical path:  1.3 → 1.5 → 1.6 → 4.1 → 4.5 → 4.6 → 5.3 → 6.3 → 6.5 → 6.6
+# PnL path:       3.1 → 3.3 (tests PASS) → 4.4 → 4.5 → dashboard
+#
+# Data Engineer prerequisite: complete @data-engineer *design-schema BEFORE 1.5/1.6
+# ─────────────────────────────────────────────────────────────────────────────

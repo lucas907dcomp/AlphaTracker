@@ -1,0 +1,8 @@
+schema: 1
+story: 'mvp-3.2'
+gate: PASS
+status_reason: 'HARD GATE cleared. All 6 P0 vitest tests pass (0 failures). Decimal precision test confirms decimal.js is correctly applied. All 9 ACs met. Wave 4 is unblocked.'
+reviewer: 'Quinn'
+updated: '2026-05-18T14:30:00Z'
+top_issues: []
+waiver: { active: false }

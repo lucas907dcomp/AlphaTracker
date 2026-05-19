@@ -1,0 +1,10 @@
+schema: 1
+story: 'mvp-alpha-tracker/1.3'
+gate: PASS
+status_reason: >
+  Todos os ACs satisfeitos. casaSchema e operacaoSchema corretos, legSchema exportado,
+  padrão 'as const satisfies' garante sincronia com OperacaoTipo. Typecheck limpo.
+reviewer: Quinn
+updated: '2026-05-18T15:00:00Z'
+top_issues: []
+waiver: { active: false }

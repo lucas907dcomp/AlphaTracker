@@ -1,0 +1,16 @@
+schema: 1
+story: '5.2'
+gate: CONCERNS
+status_reason: 'All ACs pass and typecheck exits 0. Non-blocking concerns: no component tests and AC-4 browser verification deferred per REL-001 (same pattern as Wave 4).'
+reviewer: 'Quinn'
+updated: '2026-05-18T17:10:00Z'
+top_issues:
+  - id: 'TEST-001'
+    severity: medium
+    finding: 'No unit/component tests for OperacaoCard (PnL conditional paths, tipo badge, status chip), OperacaoList (loading/error/empty states)'
+    suggested_action: 'Add component tests in Wave 6 or dedicated test wave covering conditional rendering paths in OperacaoCard'
+  - id: 'REL-001'
+    severity: low
+    finding: 'AC-4 browser verification (list shows operations, modal opens, PnL appears after confirm) requires Supabase Cloud — deferred'
+    suggested_action: 'Execute browser verification during Supabase Cloud migration (end of project) per project decision'
+waiver: { active: false }

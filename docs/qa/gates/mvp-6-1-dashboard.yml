@@ -1,0 +1,44 @@
+storyId: MVP-6-1
+verdict: CONCERNS
+reviewedAt: "2026-05-19"
+reviewedBy: "@qa (Quinn)"
+
+checks:
+  - id: code-review
+    status: PASS
+    notes: "All 5 files clean. Patterns consistent with Wave 5. recharts isolated to PnLBarChart only."
+  - id: acceptance-criteria
+    status: PASS
+    notes: "AC-1 through AC-6 all verified against implementation. DashboardPeriod type, queryKey scoping, alias aliasing, period grouping logic all correct."
+  - id: typecheck
+    status: PASS
+    notes: "npm run typecheck exits 0. No type errors."
+  - id: no-regressions
+    status: PASS
+    notes: "New files only (useDashboard.ts, 3 dashboard components). DashboardPage.tsx replaces stub — no breaking changes to existing routes."
+  - id: unit-tests
+    status: CONCERNS
+    notes: "TEST-001: No unit tests for useDashboard aggregation logic (period grouping, totalPnl sum). Non-blocking per Wave 5 precedent."
+  - id: browser-e2e
+    status: CONCERNS
+    notes: "REL-001: Browser/E2E validation deferred — no running environment available. Non-blocking per Wave 5 precedent."
+  - id: security
+    status: PASS
+    notes: "Read-only query. No user input. No XSS vectors in recharts Cell pattern."
+
+issues:
+  - id: CONCERN-001
+    severity: low
+    category: tests
+    description: "No unit tests for useDashboard aggregation logic (period grouping, totalPnl sum, chartData construction)"
+    recommendation: "Add vitest unit tests in MVP-6-3 integration test story or as follow-up"
+  - id: CONCERN-002
+    severity: low
+    category: tests
+    description: "Browser/E2E validation of PeriodToggle, PnLSummaryCard coloring, PnLBarChart rendering not performed"
+    recommendation: "Validate visually after Vercel deploy (MVP-6-4)"
+
+summary: >
+  MVP-6-1 Dashboard implementation complete and correct. All 6 ACs verified.
+  Typecheck clean. Two non-blocking concerns (TEST-001, REL-001) consistent with
+  Wave 5 pattern. Story approved for @devops push.

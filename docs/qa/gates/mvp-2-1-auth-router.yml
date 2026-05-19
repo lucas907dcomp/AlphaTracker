@@ -1,0 +1,8 @@
+schema: 1
+story: 'mvp-2.1'
+gate: PASS
+status_reason: 'All 6 ACs verified. Auth subscription, cleanup, AuthGuard pattern, router structure, and main.tsx bootstrap are correct and match story spec exactly.'
+reviewer: 'Quinn'
+updated: '2026-05-18T14:00:00Z'
+top_issues: []
+waiver: { active: false }

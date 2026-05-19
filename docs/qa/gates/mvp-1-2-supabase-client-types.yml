@@ -1,0 +1,10 @@
+schema: 1
+story: 'mvp-alpha-tracker/1.2'
+gate: PASS
+status_reason: >
+  Todos os ACs satisfeitos. Singleton com validação de env vars, todas as interfaces
+  e enums exportados corretamente alinhados com o schema do banco. Typecheck limpo.
+reviewer: Quinn
+updated: '2026-05-18T15:00:00Z'
+top_issues: []
+waiver: { active: false }

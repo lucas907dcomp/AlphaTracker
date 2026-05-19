@@ -1,0 +1,16 @@
+schema: 1
+story: 'mvp-4.1'
+gate: CONCERNS
+status_reason: 'All 5 ACs met. useOperacoes correctly handles naming collision, camelCase→snake_case, 2-step insert, marcarResultado pnl calc. No unit tests for hook business logic — deferred per project test strategy.'
+reviewer: 'Quinn'
+updated: '2026-05-18T16:00:00Z'
+top_issues:
+  - id: 'TEST-001'
+    severity: medium
+    finding: 'No unit tests for createOperacao 2-step insert or marcarResultado pnl calculation. Both contain non-trivial logic.'
+    suggested_action: 'Add hook unit tests using msw or vitest mocks for Supabase client in Wave 6 test story.'
+  - id: 'REL-001'
+    severity: low
+    finding: 'Browser verification requires Supabase Cloud — deferred per project REL-001 constraint.'
+    suggested_action: 'Validate end-to-end after Supabase Cloud migration at project end.'
+waiver: { active: false }

@@ -1,0 +1,49 @@
+storyId: MVP-6-2
+verdict: CONCERNS
+reviewedAt: "2026-05-19"
+reviewedBy: "@qa (Quinn)"
+
+checks:
+  - id: code-review
+    status: PASS
+    notes: "6 files clean. ConfirmDialog reuses overlay/panel patterns from ResultadoModal. updateOperacao 3-step sequential mutation is correct and safe."
+  - id: acceptance-criteria
+    status: PASS
+    notes: "AC-1 through AC-7 all verified. UpdateOperacaoParams uses operacao:Operacao per tech notes (not operacaoId:string per AC-2 draft). Status reset logic correct."
+  - id: typecheck
+    status: PASS
+    notes: "npm run typecheck exits 0."
+  - id: no-regressions
+    status: PASS
+    notes: "OperacaoCard extends props non-breakingly (new required props onEdit/onDelete supplied by OperacaoList). OperacaoList extends props, OperacoesPage supplies all. ResultadoModal flow unaffected."
+  - id: unit-tests
+    status: CONCERNS
+    notes: "TEST-001: No unit tests for updateOperacao status reset logic (Concluida→Pendente+pnl=null). Business-critical path. Non-blocking per Wave 5 precedent."
+  - id: browser-e2e
+    status: CONCERNS
+    notes: "REL-001: Browser/E2E validation deferred. Non-blocking per Wave 5 precedent."
+  - id: security
+    status: PASS
+    notes: "No user input directly to DB — mutations go through typed OperacaoFormData + Zod validation in OperacaoForm. No XSS vectors."
+
+issues:
+  - id: CONCERN-001
+    severity: low
+    category: tests
+    description: "No unit tests for updateOperacao status reset logic (Concluida→Pendente+pnl=null)"
+    recommendation: "Cover in MVP-6-3 integration tests or follow-up story"
+  - id: CONCERN-002
+    severity: low
+    category: tests
+    description: "Browser/E2E validation of ConfirmDialog, EditOperacaoModal, and Edit/Delete buttons not performed"
+    recommendation: "Validate visually after Vercel deploy (MVP-6-4)"
+  - id: CONCERN-003
+    severity: low
+    category: code
+    description: "useOperacoes() called twice in OperacoesPage scope (directly + via OperacaoList). Functionally correct — TanStack Query deduplicates."
+    recommendation: "Consider passing deleteOperacao as prop to OperacaoList in a future refactor. Not urgent."
+
+summary: >
+  MVP-6-2 Edit+Delete implementation complete and correct. All 7 ACs verified.
+  Typecheck clean. Three non-blocking concerns (TEST-001, REL-001, tech-debt).
+  Story approved for continuation to MVP-6-3.

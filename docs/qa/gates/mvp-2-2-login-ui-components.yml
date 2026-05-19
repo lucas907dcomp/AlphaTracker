@@ -1,0 +1,12 @@
+schema: 1
+story: 'mvp-2.2'
+gate: PASS
+status_reason: 'All 6 ACs verified. Input/Button/Select components match spec; LoginPage controlled form with correct auth flow; Toaster rendered in main.tsx covers all routes including public login.'
+reviewer: 'Quinn'
+updated: '2026-05-18T14:00:00Z'
+top_issues:
+  - id: 'MNT-001'
+    severity: low
+    finding: 'sonner CSS import not added to index.css as specified in AC-5, though Toaster component in Vite environment self-manages styles'
+    suggested_action: 'No action required — functional parity confirmed; sonner v1+ bundles CSS via Toaster component'
+waiver: { active: false }

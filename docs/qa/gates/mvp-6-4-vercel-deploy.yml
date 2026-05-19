@@ -1,0 +1,57 @@
+storyId: MVP-6-4
+verdict: WAIVED
+reviewedAt: "2026-05-19"
+reviewedBy: "@qa (Quinn)"
+
+checks:
+  - id: vercel-json
+    status: PASS
+    notes: "SPA rewrite /(.*) → /index.html. Correct pattern for Vite SPA on Vercel."
+  - id: lazy-loading
+    status: PASS
+    notes: "React.lazy + Suspense on DashboardPage. recharts code-split correctly. Other routes unaffected."
+  - id: build
+    status: PASS
+    notes: "npm run build exits 0. tsc -b + vite build clean. Pre-existing tsconfig issues fixed: vite/client types, node types, e2e exclusion."
+  - id: bundle-nfr-2
+    status: PASS
+    notes: "Main bundle: 255.87 kB gzip (target < 300KB ✅). DashboardPage lazy chunk: 115.66 kB gzip. NFR-2 met."
+  - id: typecheck
+    status: PASS
+    notes: "npm run typecheck exits 0 after tsconfig.app.json + tsconfig.node.json corrections."
+  - id: supabase-cloud
+    status: WAIVED
+    notes: "REL-001: Requires user Supabase Cloud project + credentials. Instructions documented in story AC-5. User must run: npx supabase db push + smoke_test.sql."
+  - id: vercel-env-vars
+    status: WAIVED
+    notes: "REL-001: Vercel environment variables must be set via Vercel UI (never committed). Instructions in AC-6."
+  - id: prod-deploy
+    status: WAIVED
+    notes: "REL-001: Requires vercel --prod + Vercel account linked to repo. Instructions in AC-7."
+  - id: rls-prod-test
+    status: WAIVED
+    notes: "REL-001: Requires 2 accounts on prod Supabase. Manual test per AC-8 after deploy."
+
+issues:
+  - id: WAIVER-001
+    severity: medium
+    category: requirements
+    description: "ACs 5-8 (Supabase Cloud migration, Vercel env, deploy, RLS prod test) require external services not available in local environment."
+    recommendation: "User must execute deployment checklist manually. All instructions documented in story ACs 5-8. REL-001 is formally resolved when prod URL is accessible and RLS test passes."
+
+deploy-checklist:
+  - step: "1. Create Supabase Cloud project at supabase.com"
+  - step: "2. Copy VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to .env (never commit)"
+  - step: "3. Apply migrations: npx supabase db push (or paste SQL files in Studio)"
+  - step: "4. Run supabase/tests/smoke_test.sql in Studio — verify 10/10 pass"
+  - step: "5. In Vercel dashboard, add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY for Production"
+  - step: "6. Run: vercel --prod"
+  - step: "7. Test prod URL at 375px viewport (no horizontal scroll)"
+  - step: "8. Create 2 accounts, verify User B cannot see User A data"
+
+summary: >
+  MVP-6-4 code implementation complete and correct. vercel.json, React.lazy router,
+  build (0 errors), NFR-2 bundle target (255.87 kB gzip < 300KB) all verified.
+  ACs 5-8 waived: require external Supabase Cloud + Vercel services.
+  Deploy checklist documented. REL-001 is resolved when user executes deploy steps.
+  Wave 6 MVP complete from implementation perspective.
