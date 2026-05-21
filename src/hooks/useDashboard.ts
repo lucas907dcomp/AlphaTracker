@@ -15,8 +15,11 @@ function getUserPnl(op: Operacao): number {
     op.status === 'Concluida' &&
     op.apostas?.[0]?.casa?.parceiro != null
   if (!hasSplit) return op.pnl
-  const percentual = op.apostas![0].casa!.parceiro!.percentual
-  return Math.round(op.pnl * (1 - percentual / 100) * 100) / 100
+  const parceiro = op.apostas![0].casa!.parceiro!
+  const custoLiberacao = op.custo_liberacao ?? 0
+  const lucroParaSplit = op.pnl - custoLiberacao
+  const parteParceiro = Math.round(lucroParaSplit * (parceiro.percentual / 100) * 100) / 100
+  return Math.round((op.pnl - parteParceiro) * 100) / 100
 }
 
 export function useDashboard(period: DashboardPeriod) {

@@ -157,7 +157,11 @@ export default function ParceirosPage() {
         op.pnl != null &&
         op.apostas?.[0]?.casa?.parceiro_id === parceiroId
       )
-      .reduce((sum, op) => sum + Math.round(op.pnl! * (percentual / 100) * 100) / 100, 0)
+      .reduce((sum, op) => {
+        const custo = op.custo_liberacao ?? 0
+        const lucroParaSplit = op.pnl! - custo
+        return sum + Math.round(lucroParaSplit * (percentual / 100) * 100) / 100
+      }, 0)
 
     const totalPago = allRepasses
       .filter(r => r.parceiro_id === parceiroId)

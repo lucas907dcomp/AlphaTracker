@@ -41,8 +41,9 @@ export function useOperacoes() {
       const { data: { session } } = await supabase.auth.getSession()
       const isFreebetSePerder = data.tipo === 'FreebetSePerder'
       const totalCusto = data.legs.reduce((sum, leg) => sum + (leg.isFreebet ? 0 : leg.stake), 0)
+      // custo_liberacao is informational only — already counted when FreebetSePerder was marked
       const computedPnl = data.valorPagoFixo != null
-        ? Math.round((data.valorPagoFixo - totalCusto - (data.custoLiberacao ?? 0)) * 100) / 100
+        ? Math.round((data.valorPagoFixo - totalCusto) * 100) / 100
         : 0
 
       const { data: opData, error: opError } = await supabase
@@ -146,7 +147,7 @@ export function useOperacoes() {
       const isFSP = data.tipo === 'FreebetSePerder'
       const totalCusto = data.legs.reduce((sum, leg) => sum + (leg.isFreebet ? 0 : leg.stake), 0)
       const computedPnl = !isFSP && data.valorPagoFixo != null
-        ? Math.round((data.valorPagoFixo - totalCusto - (data.custoLiberacao ?? 0)) * 100) / 100
+        ? Math.round((data.valorPagoFixo - totalCusto) * 100) / 100
         : 0
       const { error: opError } = await supabase
         .from('operacoes')

@@ -60,9 +60,11 @@ export function OperacaoCard({ operacao, onEdit, onDelete, onToggleDG, onMarcarF
     hasSplit || (operacao.tipo === 'Extracao' && (operacao.custo_liberacao ?? 0) > 0)
   )
 
-  // Split amounts for header display
+  // Split amounts for header display — partner's share computed on (pnl - custo)
+  const custoLiberacao = operacao.custo_liberacao ?? 0
+  const lucroParaSplit = operacao.pnl != null ? operacao.pnl - custoLiberacao : 0
   const parteParceiro = hasSplit && parceiro
-    ? Math.round(operacao.pnl! * (parceiro.percentual / 100) * 100) / 100
+    ? Math.round(lucroParaSplit * (parceiro.percentual / 100) * 100) / 100
     : null
   const parteUser = hasSplit && parteParceiro != null
     ? Math.round((operacao.pnl! - parteParceiro) * 100) / 100

@@ -19,8 +19,9 @@ export function SplitBreakdown({ operacao, origem }: Props) {
 
   const parceiro = operacao.apostas?.[0]?.casa?.parceiro ?? null
   const custo = operacao.custo_liberacao ?? 0
-  const lucroLiquido = operacao.pnl
-  const pnlBruto = Math.round((lucroLiquido + custo) * 100) / 100
+  // pnl stored is gross (custo not deducted — already counted in GeradaFreebet op)
+  const lucroTotal = operacao.pnl
+  const lucroParaSplit = Math.round((lucroTotal - custo) * 100) / 100
 
   const showCusto = custo > 0
   const showSplit = parceiro != null
@@ -43,53 +44,62 @@ export function SplitBreakdown({ operacao, origem }: Props) {
     : null
 
   const parteParceiro = showSplit
-    ? Math.round(lucroLiquido * (parceiro!.percentual / 100) * 100) / 100
+    ? Math.round(lucroParaSplit * (parceiro!.percentual / 100) * 100) / 100
     : null
   const parteUser = parteParceiro != null
-    ? Math.round((lucroLiquido - parteParceiro) * 100) / 100
+    ? Math.round((lucroTotal - parteParceiro) * 100) / 100
     : null
 
   return (
     <div className="border-t border-slate-800 pt-2 space-y-1">
+      <div className="flex justify-between text-xs">
+        <span className="text-slate-600 font-mono">Lucro extração</span>
+        <span className={`font-mono tabular-nums ${lucroTotal >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+          {lucroTotal >= 0 ? '+' : ''}R${lucroTotal.toFixed(2).replace('.', ',')}
+        </span>
+      </div>
       {showCusto && (
         <>
           <div className="flex justify-between text-xs">
-            <span className="text-slate-600 font-mono">Lucro bruto</span>
-            <span className={`font-mono tabular-nums ${pnlBruto >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-              {pnlBruto >= 0 ? '+' : ''}R${pnlBruto.toFixed(2).replace('.', ',')}
-            </span>
-          </div>
-          <div className="flex justify-between text-xs">
             <span className="text-slate-600 font-mono">
               Custo freebet{origemLabel ? <span className="text-slate-700"> ({origemLabel})</span> : null}
+              <span className="text-slate-700"> (já contabilizado)</span>
             </span>
-            <span className="font-mono tabular-nums text-red-400">
+            <span className="font-mono tabular-nums text-slate-600">
               −R${custo.toFixed(2).replace('.', ',')}
+            </span>
+          </div>
+          <div className="flex justify-between text-xs border-t border-slate-800/60 pt-1">
+            <span className="text-slate-500 font-mono">Base do split</span>
+            <span className={`font-mono tabular-nums ${lucroParaSplit >= 0 ? 'text-slate-300' : 'text-red-400'}`}>
+              {lucroParaSplit >= 0 ? '+' : ''}R${lucroParaSplit.toFixed(2).replace('.', ',')}
             </span>
           </div>
         </>
       )}
-      <div className={`flex justify-between text-xs ${showCusto ? 'border-t border-slate-800/60 pt-1' : ''}`}>
-        <span className="text-slate-500 font-mono">{showCusto ? 'Lucro final' : 'Lucro'}</span>
-        <span className={`font-mono tabular-nums font-semibold ${lucroLiquido >= 0 ? 'text-green-300' : 'text-red-400'}`}>
-          {lucroLiquido >= 0 ? '+' : ''}R${lucroLiquido.toFixed(2).replace('.', ',')}
-        </span>
-      </div>
       {showSplit && parteParceiro != null && parteUser != null && (
         <>
-          <div className="flex justify-between text-xs border-t border-slate-800/60 pt-1">
+          <div className={`flex justify-between text-xs ${showCusto ? '' : 'border-t border-slate-800/60 pt-1'}`}>
             <span className="text-amber-500/70 font-mono">{parceiro!.nome} ({parceiro!.percentual}%)</span>
             <span className={`font-mono tabular-nums ${parteParceiro >= 0 ? 'text-amber-400' : 'text-red-400'}`}>
               {parteParceiro >= 0 ? '+' : ''}R${parteParceiro.toFixed(2).replace('.', ',')}
             </span>
           </div>
-          <div className="flex justify-between text-xs">
-            <span className="text-slate-500 font-mono">Sua parte ({100 - parceiro!.percentual}%)</span>
-            <span className={`font-mono tabular-nums ${parteUser >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+          <div className="flex justify-between text-xs border-t border-slate-800/60 pt-1">
+            <span className="text-slate-400 font-mono font-semibold">Sua parte ({100 - parceiro!.percentual}%)</span>
+            <span className={`font-mono tabular-nums font-semibold ${parteUser >= 0 ? 'text-green-300' : 'text-red-400'}`}>
               {parteUser >= 0 ? '+' : ''}R${parteUser.toFixed(2).replace('.', ',')}
             </span>
           </div>
         </>
+      )}
+      {!showSplit && showCusto && (
+        <div className="flex justify-between text-xs border-t border-slate-800/60 pt-1">
+          <span className="text-slate-400 font-mono font-semibold">Seu lucro</span>
+          <span className={`font-mono tabular-nums font-semibold ${lucroTotal >= 0 ? 'text-green-300' : 'text-red-400'}`}>
+            {lucroTotal >= 0 ? '+' : ''}R${lucroTotal.toFixed(2).replace('.', ',')}
+          </span>
+        </div>
       )}
     </div>
   )
