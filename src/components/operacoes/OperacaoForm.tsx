@@ -93,22 +93,20 @@ export function OperacaoForm({ onSubmit, defaultValues }: Props) {
             {...register('data')}
           />
         </div>
-        {!isAposta && (
-          <div className="w-28">
-            <Controller
-              control={control}
-              name="valorPagoFixo"
-              render={({ field }) => (
-                <CentavosInput
-                  value={field.value}
-                  onChange={field.onChange}
-                  label="Valor Fixo"
-                  placeholder="0,00"
-                />
-              )}
-            />
-          </div>
-        )}
+        <div className="w-28">
+          <Controller
+            control={control}
+            name="valorPagoFixo"
+            render={({ field }) => (
+              <CentavosInput
+                value={field.value}
+                onChange={field.onChange}
+                label={isAposta ? 'Retorno' : 'Valor Fixo'}
+                placeholder="0,00"
+              />
+            )}
+          />
+        </div>
       </div>
 
       {/* Valor Freebet annotation (Freebet / FreebetSePerder only) */}

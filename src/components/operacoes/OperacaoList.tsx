@@ -60,9 +60,9 @@ export function OperacaoList({ onEdit, onDelete }: Props) {
     }
   }
 
-  async function handleMarcarAposta(operacaoId: string, aposta: Aposta, ganhou: boolean, valorRecebido?: number) {
+  async function handleMarcarAposta(operacaoId: string, aposta: Aposta, ganhou: boolean) {
     try {
-      await marcarResultadoAposta({ operacaoId, aposta, ganhou, valorRecebido })
+      await marcarResultadoAposta({ operacaoId, aposta, ganhou })
       toast.success(ganhou ? 'Aposta vencedora registrada!' : 'Aposta perdida registrada.')
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Erro ao marcar resultado')

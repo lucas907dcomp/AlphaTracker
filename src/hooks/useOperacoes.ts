@@ -25,7 +25,6 @@ type MarcarResultadoApostaParams = {
   operacaoId: string
   aposta: Aposta
   ganhou: boolean
-  valorRecebido?: number
 }
 
 export function useOperacoes() {
@@ -79,9 +78,7 @@ export function useOperacoes() {
         stake: leg.stake,
         gross_return: isFreebetSePerder && i === 0 && leg.valorPagoFixo
           ? leg.valorPagoFixo
-          : isAposta
-            ? leg.stake
-            : (data.valorPagoFixo ?? leg.stake),
+          : (data.valorPagoFixo ?? leg.stake),
         is_freebet: leg.isFreebet,
         is_double_green: false,
         resultado: 'Pendente',
@@ -190,9 +187,7 @@ export function useOperacoes() {
         stake: leg.stake,
         gross_return: isFSP && i === 0 && leg.valorPagoFixo
           ? leg.valorPagoFixo
-          : isAposta
-            ? leg.stake
-            : (data.valorPagoFixo ?? leg.stake),
+          : (data.valorPagoFixo ?? leg.stake),
         is_freebet: leg.isFreebet,
         is_double_green: leg.isDoubleGreen,
       }))
@@ -206,16 +201,15 @@ export function useOperacoes() {
   })
 
   const { mutateAsync: marcarResultadoAposta } = useMutation({
-    mutationFn: async ({ operacaoId, aposta, ganhou, valorRecebido }: MarcarResultadoApostaParams) => {
-      const grossReturn = ganhou && valorRecebido != null ? valorRecebido : aposta.gross_return
+    mutationFn: async ({ operacaoId, aposta, ganhou }: MarcarResultadoApostaParams) => {
       const { error: apostasErr } = await supabase
         .from('apostas')
-        .update({ resultado: ganhou ? 'Ganhou' : 'Perdeu', gross_return: grossReturn })
+        .update({ resultado: ganhou ? 'Ganhou' : 'Perdeu' })
         .eq('id', aposta.id)
       if (apostasErr) throw apostasErr
 
       const pnl = ganhou
-        ? Math.round((grossReturn - aposta.stake) * 100) / 100
+        ? Math.round((aposta.gross_return - aposta.stake) * 100) / 100
         : Math.round(-aposta.stake * 100) / 100
 
       const { error } = await supabase

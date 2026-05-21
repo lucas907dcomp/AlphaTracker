@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import { Button } from '@/components/ui/Button'
 import { SplitBreakdown } from './SplitBreakdown'
 import type { Operacao, OperacaoTipo, OperacaoStatus, Aposta } from '@/types'
@@ -35,14 +35,11 @@ interface OperacaoCardProps {
   isOrigemUtilizada?: boolean
   onToggleDG: (apostaId: string, operacaoId: string, isDoubleGreen: boolean) => void
   onMarcarFreebet: (operacaoId: string, apostas: Aposta[], ganhouPrimeira: boolean, geradaFreebet?: boolean) => void
-  onMarcarAposta: (operacaoId: string, aposta: Aposta, ganhou: boolean, valorRecebido?: number) => void
+  onMarcarAposta: (operacaoId: string, aposta: Aposta, ganhou: boolean) => void
 }
 
 export function OperacaoCard({ operacao, onEdit, onDelete, isOrigemUtilizada = false, onToggleDG, onMarcarFreebet, onMarcarAposta }: OperacaoCardProps) {
   const [expanded, setExpanded] = useState(false)
-  const [ganhouInput, setGanhouInput] = useState(false)
-  const [valorRecebidoStr, setValorRecebidoStr] = useState('')
-  const valorRecebidoRef = useRef<HTMLInputElement>(null)
   const dateLabel = new Date(operacao.data + 'T00:00:00').toLocaleDateString('pt-BR', {
     day: '2-digit',
     month: '2-digit',
@@ -247,64 +244,22 @@ export function OperacaoCard({ operacao, onEdit, onDelete, isOrigemUtilizada = f
 
           {/* Aposta result marking */}
           {isAposta && isPendente && operacao.apostas && operacao.apostas.length > 0 && (
-            <div className="border-t border-slate-800 pt-2 space-y-2">
-              {!ganhouInput ? (
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-xs text-slate-500">Resultado:</span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setGanhouInput(true)
-                      setTimeout(() => valorRecebidoRef.current?.focus(), 50)
-                    }}
-                    className="text-xs px-3 py-1.5 rounded border border-green-500/40 bg-green-500/10 text-green-400 hover:bg-green-500/20 transition-colors font-medium"
-                  >
-                    Ganhou ✓
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => onMarcarAposta(operacao.id, operacao.apostas![0], false)}
-                    className="text-xs px-3 py-1.5 rounded border border-red-500/40 bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors font-medium"
-                  >
-                    Perdeu ✗
-                  </button>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-xs text-slate-500 font-mono">Retorno total recebido:</span>
-                  <input
-                    ref={valorRecebidoRef}
-                    type="number"
-                    min={0}
-                    step={0.01}
-                    placeholder="0,00"
-                    value={valorRecebidoStr}
-                    onChange={e => setValorRecebidoStr(e.target.value)}
-                    className="w-24 bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs font-mono text-slate-200 focus:outline-none focus:border-green-500/60"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const v = parseFloat(valorRecebidoStr.replace(',', '.'))
-                      if (!isNaN(v) && v > 0) {
-                        onMarcarAposta(operacao.id, operacao.apostas![0], true, v)
-                        setGanhouInput(false)
-                        setValorRecebidoStr('')
-                      }
-                    }}
-                    className="text-xs px-3 py-1.5 rounded border border-green-500/40 bg-green-500/10 text-green-400 hover:bg-green-500/20 transition-colors font-medium"
-                  >
-                    Confirmar
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { setGanhouInput(false); setValorRecebidoStr('') }}
-                    className="text-xs text-slate-600 hover:text-slate-400 transition-colors"
-                  >
-                    Cancelar
-                  </button>
-                </div>
-              )}
+            <div className="flex items-center gap-2 pt-1 border-t border-slate-800 flex-wrap">
+              <span className="text-xs text-slate-500 mr-1">Resultado:</span>
+              <button
+                type="button"
+                onClick={() => onMarcarAposta(operacao.id, operacao.apostas![0], true)}
+                className="text-xs px-3 py-1.5 rounded border border-green-500/40 bg-green-500/10 text-green-400 hover:bg-green-500/20 transition-colors font-medium"
+              >
+                Ganhou ✓
+              </button>
+              <button
+                type="button"
+                onClick={() => onMarcarAposta(operacao.id, operacao.apostas![0], false)}
+                className="text-xs px-3 py-1.5 rounded border border-red-500/40 bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors font-medium"
+              >
+                Perdeu ✗
+              </button>
             </div>
           )}
 
