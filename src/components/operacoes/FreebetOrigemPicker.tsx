@@ -29,7 +29,7 @@ interface Props {
 }
 
 export function FreebetOrigemPicker({ value, onChange, onCustoLiberacaoChange, error }: Props) {
-  const { data: freebets = [], isLoading } = useFreebetsDisponiveis()
+  const { data: freebets = [], isLoading } = useFreebetsDisponiveis(value)
 
   function handleChange(e: React.ChangeEvent<HTMLSelectElement>) {
     const id = e.target.value || null

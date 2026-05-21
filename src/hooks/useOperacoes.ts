@@ -29,7 +29,7 @@ export function useOperacoes() {
     queryFn: async () => {
       const { data: result, error } = await supabase
         .from('operacoes')
-        .select('*, apostas(*, casa:casas(*, parceiro:parceiros(*)))')
+        .select('*, apostas(*, casa:casas(*, parceiro:parceiros(*))), operacao_origem:operacoes!operacao_origem_id(id, tipo, data, valor_freebet, apostas(id, casa:casas(nome)))')
         .order('data', { ascending: false })
       if (error) throw error
       return result as Operacao[]
@@ -42,7 +42,7 @@ export function useOperacoes() {
       const isFreebetSePerder = data.tipo === 'FreebetSePerder'
       const totalCusto = data.legs.reduce((sum, leg) => sum + (leg.isFreebet ? 0 : leg.stake), 0)
       const computedPnl = data.valorPagoFixo != null
-        ? Math.round((data.valorPagoFixo - totalCusto) * 100) / 100
+        ? Math.round((data.valorPagoFixo - totalCusto - (data.custoLiberacao ?? 0)) * 100) / 100
         : 0
 
       const { data: opData, error: opError } = await supabase
@@ -146,7 +146,7 @@ export function useOperacoes() {
       const isFSP = data.tipo === 'FreebetSePerder'
       const totalCusto = data.legs.reduce((sum, leg) => sum + (leg.isFreebet ? 0 : leg.stake), 0)
       const computedPnl = !isFSP && data.valorPagoFixo != null
-        ? Math.round((data.valorPagoFixo - totalCusto) * 100) / 100
+        ? Math.round((data.valorPagoFixo - totalCusto - (data.custoLiberacao ?? 0)) * 100) / 100
         : 0
       const { error: opError } = await supabase
         .from('operacoes')

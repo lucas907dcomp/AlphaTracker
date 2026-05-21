@@ -46,6 +46,14 @@ export interface Aposta {
   casa?: Casa
 }
 
+export interface OperacaoOrigem {
+  id: string
+  tipo: OperacaoTipo
+  data: string
+  valor_freebet: number | null
+  apostas?: Array<{ id: string; casa?: { nome: string } | null }>
+}
+
 export interface Operacao {
   id: string
   user_id: string
@@ -61,6 +69,7 @@ export interface Operacao {
   created_at: string
   updated_at: string
   apostas?: Aposta[]
+  operacao_origem?: OperacaoOrigem | null
 }
 
 export interface CenarioPnL {
