@@ -55,6 +55,11 @@ export function OperacaoCard({ operacao, onEdit, onDelete, onToggleDG, onMarcarF
     parceiro != null &&
     operacao.pnl != null
 
+  // Show breakdown when there's a split OR when extraction has a liberation cost
+  const showBreakdown = operacao.status === 'Concluida' && operacao.pnl != null && (
+    hasSplit || (operacao.tipo === 'Extracao' && (operacao.custo_liberacao ?? 0) > 0)
+  )
+
   // Split amounts for header display
   const parteParceiro = hasSplit && parceiro
     ? Math.round(operacao.pnl! * (parceiro.percentual / 100) * 100) / 100
@@ -156,27 +161,10 @@ export function OperacaoCard({ operacao, onEdit, onDelete, onToggleDG, onMarcarF
             </table>
           )}
 
-          {/* Origem freebet vinculada */}
-          {operacao.operacao_origem && (() => {
-            const orig = operacao.operacao_origem!
-            const origDate = orig.data
-              ? new Date(orig.data + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
-              : '?'
-            const origFb = orig.valor_freebet != null
-              ? ` — FB R$${orig.valor_freebet.toFixed(2).replace('.', ',')}`
-              : ''
-            return (
-              <div className="flex items-center gap-1.5 text-xs font-mono border-t border-slate-800 pt-2">
-                <span className="text-slate-600">Origem:</span>
-                <span className="text-slate-500">
-                  {orig.tipo ? tipoLabel[orig.tipo] : '?'} — {origDate}{origFb}
-                </span>
-              </div>
-            )
-          })()}
-
-          {/* Split breakdown (expanded detail) */}
-          {hasSplit && <SplitBreakdown operacao={operacao} />}
+          {/* Cost/split breakdown (passes origin for inline label) */}
+          {showBreakdown && (
+            <SplitBreakdown operacao={operacao} origem={operacao.operacao_origem} />
+          )}
 
           {/* FreebetSePerder pre-calculated scenarios */}
           {isFreebetSePerder && isPendente && operacao.apostas && operacao.apostas.length > 0 && (() => {

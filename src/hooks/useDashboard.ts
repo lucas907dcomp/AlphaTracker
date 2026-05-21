@@ -32,7 +32,8 @@ export function useDashboard(period: DashboardPeriod) {
   })
 
   const operacoes = data ?? []
-  const concluidas = operacoes.filter(op => op.status === 'Concluida')
+  // GeradaFreebet also has a set pnl (the qualification cost) and must appear in the dashboard
+  const concluidas = operacoes.filter(op => op.status === 'Concluida' || op.status === 'GeradaFreebet')
   const concluidasInPeriod = concluidas.filter(op => isInPeriod(op.data, period))
   const totalPnl = concluidasInPeriod.reduce((sum, op) => sum + getUserPnl(op), 0)
   const pendentesCount = operacoes.filter(op => op.status === 'Pendente').length

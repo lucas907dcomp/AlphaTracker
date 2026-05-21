@@ -70,6 +70,16 @@ export function useParceiros() {
     },
   })
 
+  const { mutateAsync: deleteRepasse } = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('parceiro_repasses').delete().eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['parceiro-repasses-all'] })
+    },
+  })
+
   return {
     parceiros,
     isLoading,
@@ -77,6 +87,7 @@ export function useParceiros() {
     createParceiro,
     deleteParceiro,
     createRepasse,
+    deleteRepasse,
   }
 }
 
