@@ -10,7 +10,7 @@ export function useCasas() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('casas')
-        .select('*')
+        .select('*, parceiro:parceiros(*)')
         .eq('is_active', true)
         .order('nome')
       if (error) throw error
@@ -38,5 +38,16 @@ export function useCasas() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['casas'] }),
   })
 
-  return { casas, isLoading, isError, createCasa, deactivateCasa }
+  const { mutateAsync: updateCasaParceiro } = useMutation({
+    mutationFn: async ({ casaId, parceiroId }: { casaId: string; parceiroId: string | null }) => {
+      const { error } = await supabase
+        .from('casas')
+        .update({ parceiro_id: parceiroId })
+        .eq('id', casaId)
+      if (error) throw error
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['casas'] }),
+  })
+
+  return { casas, isLoading, isError, createCasa, deactivateCasa, updateCasaParceiro }
 }

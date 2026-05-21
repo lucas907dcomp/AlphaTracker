@@ -51,6 +51,16 @@ export default function App() {
           >
             Casas
           </NavLink>
+          <NavLink
+            to="/parceiros"
+            className={({ isActive }) =>
+              `px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                isActive ? 'text-green-400 bg-green-400/10' : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800'
+              }`
+            }
+          >
+            Parceiros
+          </NavLink>
         </div>
         <button
           onClick={handleSignOut}

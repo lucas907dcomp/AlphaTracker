@@ -1,12 +1,33 @@
 export type OperacaoTipo = 'Freebet' | 'Extracao' | 'SuperOdd' | 'TentativaDuplo' | 'Aposta' | 'FreebetSePerder'
-export type OperacaoStatus = 'Pendente' | 'Concluida'
+export type OperacaoStatus = 'Pendente' | 'Concluida' | 'GeradaFreebet'
 export type ApostaResultado = 'Ganhou' | 'Perdeu' | 'Pendente'
+
+export interface Parceiro {
+  id: string
+  user_id: string
+  nome: string
+  percentual: number
+  created_at: string
+  updated_at: string
+}
+
+export interface ParceiroRepasse {
+  id: string
+  user_id: string
+  parceiro_id: string
+  valor: number
+  data: string
+  notas: string | null
+  created_at: string
+}
 
 export interface Casa {
   id: string
   user_id: string
   nome: string
   is_active: boolean
+  parceiro_id: string | null
+  parceiro?: Parceiro
   created_at: string
   updated_at: string
 }
@@ -35,6 +56,8 @@ export interface Operacao {
   valor_freebet: number | null
   pnl: number | null
   notas: string | null
+  operacao_origem_id: string | null
+  custo_liberacao: number | null
   created_at: string
   updated_at: string
   apostas?: Aposta[]
