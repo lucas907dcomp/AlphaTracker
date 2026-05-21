@@ -29,7 +29,7 @@ export function useOperacoes() {
     queryFn: async () => {
       const { data: result, error } = await supabase
         .from('operacoes')
-        .select('*, apostas(*, casa:casas(*))')
+        .select('*, apostas(*, casa:casas(*, parceiro:parceiros(*)))')
         .order('data', { ascending: false })
       if (error) throw error
       return result as Operacao[]
@@ -56,6 +56,8 @@ export function useOperacoes() {
           notas: data.notas ?? null,
           status: isFreebetSePerder ? 'Pendente' : 'Concluida',
           pnl: isFreebetSePerder ? null : computedPnl,
+          operacao_origem_id: data.operacaoOrigemId ?? null,
+          custo_liberacao: data.custoLiberacao ?? null,
         })
         .select('id')
         .single()
@@ -156,6 +158,8 @@ export function useOperacoes() {
           notas: data.notas ?? null,
           status: isFSP ? 'Pendente' : 'Concluida',
           pnl: isFSP ? null : computedPnl,
+          operacao_origem_id: data.operacaoOrigemId ?? null,
+          custo_liberacao: data.custoLiberacao ?? null,
         })
         .eq('id', operacao.id)
       if (opError) throw opError

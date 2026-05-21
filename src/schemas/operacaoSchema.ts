@@ -15,6 +15,8 @@ export const operacaoSchema = z.object({
   valorPagoFixo: z.number().positive().nullable().optional(),
   valorFreebet: z.number().positive().optional(),
   notas: z.string().optional(),
+  operacaoOrigemId: z.string().uuid().nullable().optional(),
+  custoLiberacao: z.number().min(0).nullable().optional(),
   legs: z.array(legSchema).min(1, 'Ao menos 1 leg obrigatória'),
 })
 

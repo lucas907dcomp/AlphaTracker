@@ -3,6 +3,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { operacaoSchema, type OperacaoFormData } from '@/schemas/operacaoSchema'
 import { useCasas } from '@/hooks/useCasas'
 import { LegRow } from './LegRow'
+import { FreebetOrigemPicker } from './FreebetOrigemPicker'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 import { Select } from '@/components/ui/Select'
@@ -36,6 +37,7 @@ export function OperacaoForm({ onSubmit, defaultValues }: Props) {
     register,
     handleSubmit,
     watch,
+    setValue,
     formState: { isSubmitting, errors },
   } = useForm<OperacaoFormData>({
     resolver: zodResolver(operacaoSchema),
@@ -51,6 +53,7 @@ export function OperacaoForm({ onSubmit, defaultValues }: Props) {
   const watchedTipo = watch('tipo')
   const isFreebetSePerder = watchedTipo === 'FreebetSePerder'
   const isFreebet = watchedTipo === 'Freebet' || isFreebetSePerder
+  const isExtracao = watchedTipo === 'Extracao'
 
 
   return (
@@ -113,6 +116,41 @@ export function OperacaoForm({ onSubmit, defaultValues }: Props) {
                 />
               )}
             />
+          </div>
+        </div>
+      )}
+
+      {/* Extração: origem freebet + custo liberação */}
+      {isExtracao && (
+        <div className="space-y-2 border border-slate-800 rounded-lg p-3 bg-slate-900/50">
+          <Controller
+            control={control}
+            name="operacaoOrigemId"
+            render={({ field }) => (
+              <FreebetOrigemPicker
+                value={field.value ?? null}
+                onChange={field.onChange}
+                onCustoLiberacaoChange={custo => setValue('custoLiberacao', custo > 0 ? custo : null)}
+                error={errors.operacaoOrigemId?.message}
+              />
+            )}
+          />
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-slate-500 font-mono uppercase tracking-wide whitespace-nowrap">Custo liberação</span>
+            <div className="w-28">
+              <Controller
+                control={control}
+                name="custoLiberacao"
+                render={({ field }) => (
+                  <CentavosInput
+                    value={field.value ?? null}
+                    onChange={v => field.onChange(v ?? null)}
+                    placeholder="0,00"
+                  />
+                )}
+              />
+            </div>
+            <span className="text-xs text-slate-600">(preenchido automaticamente)</span>
           </div>
         </div>
       )}

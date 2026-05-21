@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/Button'
+import { SplitBreakdown } from './SplitBreakdown'
 import type { Operacao, OperacaoTipo, OperacaoStatus, Aposta } from '@/types'
 
 const tipoBadge: Record<OperacaoTipo, string> = {
@@ -47,6 +48,7 @@ export function OperacaoCard({ operacao, onEdit, onDelete, onToggleDG, onMarcarF
   const isFreebetSePerder = operacao.tipo === 'FreebetSePerder'
   const isFreebet = operacao.tipo === 'Freebet' || isFreebetSePerder
   const primeiraCasa = operacao.apostas?.[0]?.casa?.nome ?? null
+  const hasSplit = operacao.tipo === 'Extracao' && !isPendente && operacao.apostas?.[0]?.casa?.parceiro != null && (operacao.operacao_origem_id != null || operacao.custo_liberacao != null)
 
   return (
     <div className={`border rounded-lg overflow-hidden transition-colors ${
@@ -83,6 +85,9 @@ export function OperacaoCard({ operacao, onEdit, onDelete, onToggleDG, onMarcarF
           <span className="text-xs font-mono text-purple-400/70 shrink-0">
             +R${operacao.valor_freebet.toFixed(2).replace('.', ',')} FB {primeiraCasa}
           </span>
+        )}
+        {hasSplit && (
+          <span className="text-xs font-mono text-amber-500/60 shrink-0">÷ split</span>
         )}
         <span className="text-slate-500 text-xs truncate flex-1 min-w-0">{casasNomes}</span>
         <span className="text-slate-600 text-xs shrink-0 tabular-nums">{dateLabel}</span>
@@ -128,6 +133,9 @@ export function OperacaoCard({ operacao, onEdit, onDelete, onToggleDG, onMarcarF
               </tbody>
             </table>
           )}
+
+          {/* Extração: split breakdown */}
+          {hasSplit && <SplitBreakdown operacao={operacao} />}
 
           {/* FreebetSePerder pre-calculated scenarios */}
           {isFreebetSePerder && isPendente && operacao.apostas && operacao.apostas.length > 0 && (() => {

@@ -18,6 +18,8 @@ export function EditOperacaoModal({ operacao, onClose }: EditOperacaoModalProps)
     valorPagoFixo: operacao.valor_pago_fixo ?? undefined,
     valorFreebet: operacao.valor_freebet ?? undefined,
     notas: operacao.notas ?? undefined,
+    operacaoOrigemId: operacao.operacao_origem_id ?? null,
+    custoLiberacao: operacao.custo_liberacao ?? null,
     legs: operacao.apostas!.map((a, i) => ({
       casaId: a.casa_id,
       stake: a.stake,
