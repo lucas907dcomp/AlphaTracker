@@ -21,6 +21,13 @@ type MarcarFreebetSePerderParams = {
   geradaFreebet?: boolean
 }
 
+type MarcarResultadoApostaParams = {
+  operacaoId: string
+  aposta: Aposta
+  ganhou: boolean
+  valorRecebido?: number
+}
+
 export function useOperacoes() {
   const queryClient = useQueryClient()
 
@@ -40,6 +47,8 @@ export function useOperacoes() {
     mutationFn: async (data: OperacaoFormData) => {
       const { data: { session } } = await supabase.auth.getSession()
       const isFreebetSePerder = data.tipo === 'FreebetSePerder'
+      const isAposta = data.tipo === 'Aposta'
+      const isPending = isFreebetSePerder || isAposta
       const totalCusto = data.legs.reduce((sum, leg) => sum + (leg.isFreebet ? 0 : leg.stake), 0)
       // custo_liberacao is informational only — already counted when FreebetSePerder was marked
       const computedPnl = data.valorPagoFixo != null
@@ -55,8 +64,8 @@ export function useOperacoes() {
           valor_pago_fixo: data.valorPagoFixo ?? null,
           valor_freebet: data.valorFreebet ?? null,
           notas: data.notas ?? null,
-          status: isFreebetSePerder ? 'Pendente' : 'Concluida',
-          pnl: isFreebetSePerder ? null : computedPnl,
+          status: isPending ? 'Pendente' : 'Concluida',
+          pnl: isPending ? null : computedPnl,
           operacao_origem_id: data.operacaoOrigemId ?? null,
           custo_liberacao: data.custoLiberacao ?? null,
         })
@@ -70,7 +79,9 @@ export function useOperacoes() {
         stake: leg.stake,
         gross_return: isFreebetSePerder && i === 0 && leg.valorPagoFixo
           ? leg.valorPagoFixo
-          : (data.valorPagoFixo ?? leg.stake),
+          : isAposta
+            ? leg.stake
+            : (data.valorPagoFixo ?? leg.stake),
         is_freebet: leg.isFreebet,
         is_double_green: false,
         resultado: 'Pendente',
@@ -145,8 +156,10 @@ export function useOperacoes() {
   const { mutateAsync: updateOperacao } = useMutation({
     mutationFn: async ({ operacao, data }: UpdateOperacaoParams) => {
       const isFSP = data.tipo === 'FreebetSePerder'
+      const isAposta = data.tipo === 'Aposta'
+      const isPending = isFSP || isAposta
       const totalCusto = data.legs.reduce((sum, leg) => sum + (leg.isFreebet ? 0 : leg.stake), 0)
-      const computedPnl = !isFSP && data.valorPagoFixo != null
+      const computedPnl = !isPending && data.valorPagoFixo != null
         ? Math.round((data.valorPagoFixo - totalCusto) * 100) / 100
         : 0
       const { error: opError } = await supabase
@@ -157,8 +170,8 @@ export function useOperacoes() {
           valor_pago_fixo: data.valorPagoFixo ?? null,
           valor_freebet: data.valorFreebet ?? null,
           notas: data.notas ?? null,
-          status: isFSP ? 'Pendente' : 'Concluida',
-          pnl: isFSP ? null : computedPnl,
+          status: isPending ? 'Pendente' : 'Concluida',
+          pnl: isPending ? null : computedPnl,
           operacao_origem_id: data.operacaoOrigemId ?? null,
           custo_liberacao: data.custoLiberacao ?? null,
         })
@@ -177,12 +190,39 @@ export function useOperacoes() {
         stake: leg.stake,
         gross_return: isFSP && i === 0 && leg.valorPagoFixo
           ? leg.valorPagoFixo
-          : (data.valorPagoFixo ?? leg.stake),
+          : isAposta
+            ? leg.stake
+            : (data.valorPagoFixo ?? leg.stake),
         is_freebet: leg.isFreebet,
         is_double_green: leg.isDoubleGreen,
       }))
       const { error: insertError } = await supabase.from('apostas').insert(apostasToInsert)
       if (insertError) throw insertError
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['operacoes'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+    },
+  })
+
+  const { mutateAsync: marcarResultadoAposta } = useMutation({
+    mutationFn: async ({ operacaoId, aposta, ganhou, valorRecebido }: MarcarResultadoApostaParams) => {
+      const grossReturn = ganhou && valorRecebido != null ? valorRecebido : aposta.gross_return
+      const { error: apostasErr } = await supabase
+        .from('apostas')
+        .update({ resultado: ganhou ? 'Ganhou' : 'Perdeu', gross_return: grossReturn })
+        .eq('id', aposta.id)
+      if (apostasErr) throw apostasErr
+
+      const pnl = ganhou
+        ? Math.round((grossReturn - aposta.stake) * 100) / 100
+        : Math.round(-aposta.stake * 100) / 100
+
+      const { error } = await supabase
+        .from('operacoes')
+        .update({ pnl, status: 'Concluida' })
+        .eq('id', operacaoId)
+      if (error) throw error
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['operacoes'] })
@@ -234,6 +274,7 @@ export function useOperacoes() {
     createOperacao,
     deleteOperacao,
     marcarFreebetSePerder,
+    marcarResultadoAposta,
     updateOperacao,
     toggleDoubleGreen,
   }

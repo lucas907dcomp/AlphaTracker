@@ -32,7 +32,7 @@ function formatDateHeader(dateStr: string): string {
 }
 
 export function OperacaoList({ onEdit, onDelete }: Props) {
-  const { operacoes, isLoading, isError, toggleDoubleGreen, marcarFreebetSePerder } = useOperacoes()
+  const { operacoes, isLoading, isError, toggleDoubleGreen, marcarFreebetSePerder, marcarResultadoAposta } = useOperacoes()
 
   if (isLoading) return <p className="text-slate-600 text-sm py-8 text-center">Carregando...</p>
   if (isError) return <p className="text-red-400 text-sm py-4">Erro ao carregar operações.</p>
@@ -60,6 +60,15 @@ export function OperacaoList({ onEdit, onDelete }: Props) {
     }
   }
 
+  async function handleMarcarAposta(operacaoId: string, aposta: Aposta, ganhou: boolean, valorRecebido?: number) {
+    try {
+      await marcarResultadoAposta({ operacaoId, aposta, ganhou, valorRecebido })
+      toast.success(ganhou ? 'Aposta vencedora registrada!' : 'Aposta perdida registrada.')
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Erro ao marcar resultado')
+    }
+  }
+
   return (
     <div className="space-y-5">
       {dateKeys.map(date => (
@@ -82,6 +91,7 @@ export function OperacaoList({ onEdit, onDelete }: Props) {
                 toggleDoubleGreen({ apostaId, operacaoId, isDoubleGreen })
               }
               onMarcarFreebet={handleMarcarFreebet}
+              onMarcarAposta={handleMarcarAposta}
             />
           ))}
         </div>

@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { useForm, useFieldArray, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { operacaoSchema, type OperacaoFormData } from '@/schemas/operacaoSchema'
@@ -54,6 +55,14 @@ export function OperacaoForm({ onSubmit, defaultValues }: Props) {
   const isFreebetSePerder = watchedTipo === 'FreebetSePerder'
   const isFreebet = watchedTipo === 'Freebet' || isFreebetSePerder
   const isExtracao = watchedTipo === 'Extracao'
+  const isAposta = watchedTipo === 'Aposta'
+
+  // Aposta allows only 1 leg — trim extras when switching to this type
+  useEffect(() => {
+    if (isAposta && fields.length > 1) {
+      for (let i = fields.length - 1; i > 0; i--) remove(i)
+    }
+  }, [isAposta]) // eslint-disable-line react-hooks/exhaustive-deps
 
 
   return (
@@ -84,20 +93,22 @@ export function OperacaoForm({ onSubmit, defaultValues }: Props) {
             {...register('data')}
           />
         </div>
-        <div className="w-28">
-          <Controller
-            control={control}
-            name="valorPagoFixo"
-            render={({ field }) => (
-              <CentavosInput
-                value={field.value}
-                onChange={field.onChange}
-                label="Valor Fixo"
-                placeholder="0,00"
-              />
-            )}
-          />
-        </div>
+        {!isAposta && (
+          <div className="w-28">
+            <Controller
+              control={control}
+              name="valorPagoFixo"
+              render={({ field }) => (
+                <CentavosInput
+                  value={field.value}
+                  onChange={field.onChange}
+                  label="Valor Fixo"
+                  placeholder="0,00"
+                />
+              )}
+            />
+          </div>
+        )}
       </div>
 
       {/* Valor Freebet annotation (Freebet / FreebetSePerder only) */}
@@ -170,19 +181,21 @@ export function OperacaoForm({ onSubmit, defaultValues }: Props) {
             showExtraValorFixo={isFreebetSePerder && i === 0}
           />
         ))}
-        <button
-          type="button"
-          tabIndex={-1}
-          onClick={() => append(emptyLeg)}
-          className="text-xs text-slate-600 hover:text-blue-400 transition-colors mt-1"
-        >
-          + Adicionar Casa
-        </button>
+        {!isAposta && (
+          <button
+            type="button"
+            tabIndex={-1}
+            onClick={() => append(emptyLeg)}
+            className="text-xs text-slate-600 hover:text-blue-400 transition-colors mt-1"
+          >
+            + Adicionar Casa
+          </button>
+        )}
       </div>
 
       {/* Footer */}
       <div className="flex items-center justify-between pt-1">
-        {isFreebetSePerder ? (
+        {(isFreebetSePerder || isAposta) ? (
           <p className="text-xs text-yellow-500/70 font-mono">
             Ficará pendente até marcar resultado
           </p>
