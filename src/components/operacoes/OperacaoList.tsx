@@ -40,6 +40,10 @@ export function OperacaoList({ onEdit, onDelete }: Props) {
     return <p className="text-slate-700 text-sm py-8 text-center">Nenhuma operação registrada.</p>
   }
 
+  const usedOrigemIds = new Set(
+    operacoes.filter(op => op.operacao_origem_id != null).map(op => op.operacao_origem_id!)
+  )
+
   const dateKeys = [...new Set(operacoes.map(op => op.data))]
   const grouped: Record<string, Operacao[]> = {}
   for (const date of dateKeys) {
@@ -73,6 +77,7 @@ export function OperacaoList({ onEdit, onDelete }: Props) {
               operacao={op}
               onEdit={onEdit}
               onDelete={onDelete}
+              isOrigemUtilizada={usedOrigemIds.has(op.id)}
               onToggleDG={(apostaId, operacaoId, isDoubleGreen) =>
                 toggleDoubleGreen({ apostaId, operacaoId, isDoubleGreen })
               }

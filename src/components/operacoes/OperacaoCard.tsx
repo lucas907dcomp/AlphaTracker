@@ -32,11 +32,12 @@ interface OperacaoCardProps {
   operacao: Operacao
   onEdit: (operacao: Operacao) => void
   onDelete: (operacao: Operacao) => void
+  isOrigemUtilizada?: boolean
   onToggleDG: (apostaId: string, operacaoId: string, isDoubleGreen: boolean) => void
   onMarcarFreebet: (operacaoId: string, apostas: Aposta[], ganhouPrimeira: boolean, geradaFreebet?: boolean) => void
 }
 
-export function OperacaoCard({ operacao, onEdit, onDelete, onToggleDG, onMarcarFreebet }: OperacaoCardProps) {
+export function OperacaoCard({ operacao, onEdit, onDelete, isOrigemUtilizada = false, onToggleDG, onMarcarFreebet }: OperacaoCardProps) {
   const [expanded, setExpanded] = useState(false)
   const dateLabel = new Date(operacao.data + 'T00:00:00').toLocaleDateString('pt-BR', {
     day: '2-digit',
@@ -88,9 +89,20 @@ export function OperacaoCard({ operacao, onEdit, onDelete, onToggleDG, onMarcarF
         {isPendente ? (
           <span className="text-xs font-mono text-yellow-500/70 shrink-0">PEND</span>
         ) : isGeradaFreebet ? (
-          <span className={`text-xs font-mono px-1.5 py-0.5 rounded shrink-0 ${statusBadge.GeradaFreebet!.className}`}>
-            {statusBadge.GeradaFreebet!.label}
-          </span>
+          <>
+            {operacao.pnl !== null && (
+              <span className={`font-mono font-semibold text-sm tabular-nums shrink-0 ${operacao.pnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                {operacao.pnl >= 0 ? '+' : ''}R${operacao.pnl.toFixed(2).replace('.', ',')}
+              </span>
+            )}
+            <span className={`text-xs font-mono px-1.5 py-0.5 rounded shrink-0 ${
+              isOrigemUtilizada
+                ? 'bg-slate-500/15 text-slate-500 border border-slate-500/20'
+                : statusBadge.GeradaFreebet!.className
+            }`}>
+              {isOrigemUtilizada ? 'Freebet Utilizada' : statusBadge.GeradaFreebet!.label}
+            </span>
+          </>
         ) : hasSplit && parteUser != null && parteParceiro != null ? (
           <>
             <span className={`font-mono font-semibold text-sm tabular-nums shrink-0 ${parteUser >= 0 ? 'text-green-400' : 'text-red-400'}`}>
