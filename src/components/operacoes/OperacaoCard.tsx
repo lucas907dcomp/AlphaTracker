@@ -120,6 +120,16 @@ export function OperacaoCard({ operacao, onEdit, onDelete, isOrigemUtilizada = f
           )
         )}
 
+        {operacao.tipo === 'Freebet' && operacao.valor_freebet != null && (
+          <span className={`text-xs font-mono px-1.5 py-0.5 rounded shrink-0 ${
+            isOrigemUtilizada
+              ? 'bg-slate-500/15 text-slate-500 border border-slate-500/20'
+              : 'bg-amber-500/15 text-amber-400 border border-amber-500/20'
+          }`}>
+            {isOrigemUtilizada ? 'Freebet Utilizada' : 'Freebet Disponível'}
+          </span>
+        )}
+
         {isFreebet && operacao.valor_freebet != null && primeiraCasa && (
           operacao.tipo === 'Freebet' ||
           isPendente ||
