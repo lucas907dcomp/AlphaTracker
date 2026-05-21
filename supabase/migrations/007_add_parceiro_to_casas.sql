@@ -1,0 +1,1 @@
+ALTER TABLE casas ADD COLUMN parceiro_id UUID REFERENCES parceiros(id) ON DELETE SET NULL;
