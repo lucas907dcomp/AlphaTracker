@@ -18,6 +18,7 @@ type MarcarFreebetSePerderParams = {
   operacaoId: string
   apostas: Aposta[]
   ganhouPrimeira: boolean
+  geradaFreebet?: boolean
 }
 
 export function useOperacoes() {
@@ -93,7 +94,7 @@ export function useOperacoes() {
   })
 
   const { mutateAsync: marcarFreebetSePerder } = useMutation({
-    mutationFn: async ({ operacaoId, apostas, ganhouPrimeira }: MarcarFreebetSePerderParams) => {
+    mutationFn: async ({ operacaoId, apostas, ganhouPrimeira, geradaFreebet }: MarcarFreebetSePerderParams) => {
       const [primeiraAposta, ...outrasApostas] = apostas
       const outraIds = outrasApostas.map(a => a.id)
 
@@ -123,9 +124,12 @@ export function useOperacoes() {
         : (outrasApostas[0]?.gross_return ?? 0)
       const pnl = Math.round((grossReturn - totalCusto) * 100) / 100
 
+      // GeradaFreebet: principal perdeu e bônus foi creditado — status especial
+      const status = (!ganhouPrimeira && geradaFreebet) ? 'GeradaFreebet' : 'Concluida'
+
       const { error } = await supabase
         .from('operacoes')
-        .update({ pnl, status: 'Concluida' })
+        .update({ pnl, status })
         .eq('id', operacaoId)
       if (error) throw error
     },

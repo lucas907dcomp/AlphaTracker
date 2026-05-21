@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/Button'
-import type { Operacao, OperacaoTipo, Aposta } from '@/types'
+import type { Operacao, OperacaoTipo, OperacaoStatus, Aposta } from '@/types'
 
 const tipoBadge: Record<OperacaoTipo, string> = {
   Freebet: 'bg-purple-500/20 text-purple-400',
@@ -20,12 +20,19 @@ const tipoLabel: Record<OperacaoTipo, string> = {
   FreebetSePerder: 'FBSP',
 }
 
+const statusBadge: Partial<Record<OperacaoStatus, { label: string; className: string }>> = {
+  GeradaFreebet: {
+    label: 'Freebet Disponível',
+    className: 'bg-amber-500/15 text-amber-400 border border-amber-500/20',
+  },
+}
+
 interface OperacaoCardProps {
   operacao: Operacao
   onEdit: (operacao: Operacao) => void
   onDelete: (operacao: Operacao) => void
   onToggleDG: (apostaId: string, operacaoId: string, isDoubleGreen: boolean) => void
-  onMarcarFreebet: (operacaoId: string, apostas: Aposta[], ganhouPrimeira: boolean) => void
+  onMarcarFreebet: (operacaoId: string, apostas: Aposta[], ganhouPrimeira: boolean, geradaFreebet?: boolean) => void
 }
 
 export function OperacaoCard({ operacao, onEdit, onDelete, onToggleDG, onMarcarFreebet }: OperacaoCardProps) {
@@ -36,6 +43,7 @@ export function OperacaoCard({ operacao, onEdit, onDelete, onToggleDG, onMarcarF
   })
   const casasNomes = operacao.apostas?.map(a => a.casa?.nome ?? '?').join(', ') ?? ''
   const isPendente = operacao.status === 'Pendente'
+  const isGeradaFreebet = operacao.status === 'GeradaFreebet'
   const isFreebetSePerder = operacao.tipo === 'FreebetSePerder'
   const isFreebet = operacao.tipo === 'Freebet' || isFreebetSePerder
   const primeiraCasa = operacao.apostas?.[0]?.casa?.nome ?? null
@@ -56,6 +64,10 @@ export function OperacaoCard({ operacao, onEdit, onDelete, onToggleDG, onMarcarF
         </span>
         {isPendente ? (
           <span className="text-xs font-mono text-yellow-500/70 shrink-0">PEND</span>
+        ) : isGeradaFreebet ? (
+          <span className={`text-xs font-mono px-1.5 py-0.5 rounded shrink-0 ${statusBadge.GeradaFreebet!.className}`}>
+            {statusBadge.GeradaFreebet!.label}
+          </span>
         ) : (
           operacao.pnl !== null && (
             <span className={`font-mono font-semibold text-sm tabular-nums shrink-0 ${operacao.pnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
@@ -148,7 +160,7 @@ export function OperacaoCard({ operacao, onEdit, onDelete, onToggleDG, onMarcarF
 
           {/* FreebetSePerder result marking */}
           {isFreebetSePerder && isPendente && operacao.apostas && operacao.apostas.length > 0 && (
-            <div className="flex items-center gap-2 pt-1 border-t border-slate-800">
+            <div className="flex items-center gap-2 pt-1 border-t border-slate-800 flex-wrap">
               <span className="text-xs text-slate-500 mr-1">Resultado:</span>
               <button
                 type="button"
@@ -159,10 +171,17 @@ export function OperacaoCard({ operacao, onEdit, onDelete, onToggleDG, onMarcarF
               </button>
               <button
                 type="button"
-                onClick={() => onMarcarFreebet(operacao.id, operacao.apostas!, false)}
-                className="text-xs px-3 py-1.5 rounded border border-yellow-500/40 bg-yellow-500/10 text-yellow-400 hover:bg-yellow-500/20 transition-colors font-medium"
+                onClick={() => onMarcarFreebet(operacao.id, operacao.apostas!, false, false)}
+                className="text-xs px-3 py-1.5 rounded border border-slate-600 bg-slate-800 text-slate-400 hover:bg-slate-700 transition-colors font-medium"
               >
-                Freebet →
+                Perdeu / Fechou
+              </button>
+              <button
+                type="button"
+                onClick={() => onMarcarFreebet(operacao.id, operacao.apostas!, false, true)}
+                className="text-xs px-3 py-1.5 rounded border border-amber-500/40 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 transition-colors font-medium"
+              >
+                Gerou Freebet 🎟️
               </button>
             </div>
           )}
