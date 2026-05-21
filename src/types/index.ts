@@ -51,7 +51,6 @@ export interface OperacaoOrigem {
   tipo: OperacaoTipo
   data: string
   valor_freebet: number | null
-  apostas?: Array<{ id: string; casa?: { nome: string } | null }>
 }
 
 export interface Operacao {

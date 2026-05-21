@@ -29,7 +29,7 @@ export function useOperacoes() {
     queryFn: async () => {
       const { data: result, error } = await supabase
         .from('operacoes')
-        .select('*, apostas(*, casa:casas(*, parceiro:parceiros(*))), operacao_origem:operacoes!operacao_origem_id(id, tipo, data, valor_freebet, apostas(id, casa:casas(nome)))')
+        .select('*, apostas(*, casa:casas(*, parceiro:parceiros(*))), operacao_origem:operacoes!operacao_origem_id(id, tipo, data, valor_freebet)')
         .order('data', { ascending: false })
       if (error) throw error
       return result as Operacao[]

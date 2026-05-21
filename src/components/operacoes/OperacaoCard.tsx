@@ -48,10 +48,20 @@ export function OperacaoCard({ operacao, onEdit, onDelete, onToggleDG, onMarcarF
   const isFreebetSePerder = operacao.tipo === 'FreebetSePerder'
   const isFreebet = operacao.tipo === 'Freebet' || isFreebetSePerder
   const primeiraCasa = operacao.apostas?.[0]?.casa?.nome ?? null
+  const parceiro = operacao.apostas?.[0]?.casa?.parceiro ?? null
+
   const hasSplit = (operacao.tipo === 'Extracao' || operacao.tipo === 'FreebetSePerder') &&
     operacao.status === 'Concluida' &&
-    operacao.apostas?.[0]?.casa?.parceiro != null &&
+    parceiro != null &&
     operacao.pnl != null
+
+  // Split amounts for header display
+  const parteParceiro = hasSplit && parceiro
+    ? Math.round(operacao.pnl! * (parceiro.percentual / 100) * 100) / 100
+    : null
+  const parteUser = hasSplit && parteParceiro != null
+    ? Math.round((operacao.pnl! - parteParceiro) * 100) / 100
+    : null
 
   return (
     <div className={`border rounded-lg overflow-hidden transition-colors ${
@@ -67,12 +77,22 @@ export function OperacaoCard({ operacao, onEdit, onDelete, onToggleDG, onMarcarF
         <span className={`text-xs font-mono font-bold px-1.5 py-0.5 rounded shrink-0 ${tipoBadge[operacao.tipo]}`}>
           {tipoLabel[operacao.tipo]}
         </span>
+
         {isPendente ? (
           <span className="text-xs font-mono text-yellow-500/70 shrink-0">PEND</span>
         ) : isGeradaFreebet ? (
           <span className={`text-xs font-mono px-1.5 py-0.5 rounded shrink-0 ${statusBadge.GeradaFreebet!.className}`}>
             {statusBadge.GeradaFreebet!.label}
           </span>
+        ) : hasSplit && parteUser != null && parteParceiro != null ? (
+          <>
+            <span className={`font-mono font-semibold text-sm tabular-nums shrink-0 ${parteUser >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+              {parteUser >= 0 ? '+' : ''}R${parteUser.toFixed(2).replace('.', ',')}
+            </span>
+            <span className={`font-mono text-xs tabular-nums shrink-0 ${parteParceiro >= 0 ? 'text-amber-400' : 'text-red-400'}`}>
+              {parteParceiro >= 0 ? '+' : ''}R${parteParceiro.toFixed(2).replace('.', ',')} {parceiro!.nome}
+            </span>
+          </>
         ) : (
           operacao.pnl !== null && (
             <span className={`font-mono font-semibold text-sm tabular-nums shrink-0 ${operacao.pnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
@@ -80,6 +100,7 @@ export function OperacaoCard({ operacao, onEdit, onDelete, onToggleDG, onMarcarF
             </span>
           )
         )}
+
         {isFreebet && operacao.valor_freebet != null && primeiraCasa && (
           operacao.tipo === 'Freebet' ||
           isPendente ||
@@ -89,9 +110,7 @@ export function OperacaoCard({ operacao, onEdit, onDelete, onToggleDG, onMarcarF
             +R${operacao.valor_freebet.toFixed(2).replace('.', ',')} FB {primeiraCasa}
           </span>
         )}
-        {hasSplit && (
-          <span className="text-xs font-mono text-amber-500/60 shrink-0">÷ split</span>
-        )}
+
         <span className="text-slate-500 text-xs truncate flex-1 min-w-0">{casasNomes}</span>
         <span className="text-slate-600 text-xs shrink-0 tabular-nums">{dateLabel}</span>
         <span className="text-slate-700 text-xs shrink-0">{expanded ? '▲' : '▼'}</span>
@@ -140,18 +159,23 @@ export function OperacaoCard({ operacao, onEdit, onDelete, onToggleDG, onMarcarF
           {/* Origem freebet vinculada */}
           {operacao.operacao_origem && (() => {
             const orig = operacao.operacao_origem!
-            const origCasa = orig.apostas?.[0]?.casa?.nome ?? '?'
-            const origDate = new Date(orig.data + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
-            const origFb = orig.valor_freebet != null ? ` — FB R$${orig.valor_freebet.toFixed(2).replace('.', ',')}` : ''
+            const origDate = orig.data
+              ? new Date(orig.data + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+              : '?'
+            const origFb = orig.valor_freebet != null
+              ? ` — FB R$${orig.valor_freebet.toFixed(2).replace('.', ',')}`
+              : ''
             return (
-              <div className="flex items-center gap-1.5 text-xs text-slate-600 font-mono border-t border-slate-800 pt-2">
-                <span>Origem:</span>
-                <span className="text-slate-500">{tipoLabel[orig.tipo]} — {origCasa} — {origDate}{origFb}</span>
+              <div className="flex items-center gap-1.5 text-xs font-mono border-t border-slate-800 pt-2">
+                <span className="text-slate-600">Origem:</span>
+                <span className="text-slate-500">
+                  {orig.tipo ? tipoLabel[orig.tipo] : '?'} — {origDate}{origFb}
+                </span>
               </div>
             )
           })()}
 
-          {/* Extração: split breakdown */}
+          {/* Split breakdown (expanded detail) */}
           {hasSplit && <SplitBreakdown operacao={operacao} />}
 
           {/* FreebetSePerder pre-calculated scenarios */}

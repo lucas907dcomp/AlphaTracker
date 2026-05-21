@@ -65,9 +65,8 @@ export function useParceiros() {
       })
       if (error) throw error
     },
-    onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['parceiro-saldo', variables.parceiroId] })
-      queryClient.invalidateQueries({ queryKey: ['parceiro-dashboard'] })
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['parceiro-repasses-all'] })
     },
   })
 
@@ -94,5 +93,19 @@ export function useParceiroRepasses(parceiroId: string) {
       return data as ParceiroRepasse[]
     },
     enabled: !!parceiroId,
+  })
+}
+
+export function useAllRepasses() {
+  return useQuery({
+    queryKey: ['parceiro-repasses-all'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('parceiro_repasses')
+        .select('*')
+        .order('data', { ascending: false })
+      if (error) throw error
+      return data as ParceiroRepasse[]
+    },
   })
 }
