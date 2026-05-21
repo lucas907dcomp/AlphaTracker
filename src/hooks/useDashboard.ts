@@ -7,13 +7,25 @@ import type { Operacao } from '@/types'
 
 export type DashboardPeriod = 'day' | 'week' | 'month'
 
+// For operations with a partner split, return only the user's portion of pnl
+function getUserPnl(op: Operacao): number {
+  if (op.pnl == null) return 0
+  const hasSplit =
+    (op.tipo === 'Extracao' || op.tipo === 'FreebetSePerder') &&
+    op.status === 'Concluida' &&
+    op.apostas?.[0]?.casa?.parceiro != null
+  if (!hasSplit) return op.pnl
+  const percentual = op.apostas![0].casa!.parceiro!.percentual
+  return Math.round(op.pnl * (1 - percentual / 100) * 100) / 100
+}
+
 export function useDashboard(period: DashboardPeriod) {
   const { data, isLoading, isError } = useQuery({
     queryKey: ['dashboard', period],
     queryFn: async () => {
       const { data: result, error } = await supabase
         .from('operacoes')
-        .select('*, apostas(*, casa:casas(*))')
+        .select('*, apostas(*, casa:casas(*, parceiro:parceiros(*)))')
       if (error) throw error
       return result as Operacao[]
     },
@@ -22,7 +34,7 @@ export function useDashboard(period: DashboardPeriod) {
   const operacoes = data ?? []
   const concluidas = operacoes.filter(op => op.status === 'Concluida')
   const concluidasInPeriod = concluidas.filter(op => isInPeriod(op.data, period))
-  const totalPnl = concluidasInPeriod.reduce((sum, op) => sum + (op.pnl ?? 0), 0)
+  const totalPnl = concluidasInPeriod.reduce((sum, op) => sum + getUserPnl(op), 0)
   const pendentesCount = operacoes.filter(op => op.status === 'Pendente').length
 
   let chartData: { label: string; pnl: number }[] = []
@@ -30,7 +42,7 @@ export function useDashboard(period: DashboardPeriod) {
   if (period === 'day') {
     chartData = concluidasInPeriod.map(op => ({
       label: op.tipo,
-      pnl: op.pnl ?? 0,
+      pnl: getUserPnl(op),
     }))
   } else {
     const grouped: Record<string, number> = {}
@@ -39,7 +51,7 @@ export function useDashboard(period: DashboardPeriod) {
 
     for (const op of concluidasInPeriod) {
       const key = op.data
-      grouped[key] = (grouped[key] ?? 0) + (op.pnl ?? 0)
+      grouped[key] = (grouped[key] ?? 0) + getUserPnl(op)
       labelMap[key] =
         period === 'week'
           ? format(parseISO(op.data + 'T00:00:00'), labelFormat, { locale: ptBR })

@@ -216,21 +216,14 @@ export function OperacaoCard({ operacao, onEdit, onDelete, onToggleDG, onMarcarF
                 onClick={() => onMarcarFreebet(operacao.id, operacao.apostas!, true)}
                 className="text-xs px-3 py-1.5 rounded border border-green-500/40 bg-green-500/10 text-green-400 hover:bg-green-500/20 transition-colors font-medium"
               >
-                Lucrou ✓
-              </button>
-              <button
-                type="button"
-                onClick={() => onMarcarFreebet(operacao.id, operacao.apostas!, false, false)}
-                className="text-xs px-3 py-1.5 rounded border border-slate-600 bg-slate-800 text-slate-400 hover:bg-slate-700 transition-colors font-medium"
-              >
-                Perdeu / Fechou
+                Não gerou freebet ✓
               </button>
               <button
                 type="button"
                 onClick={() => onMarcarFreebet(operacao.id, operacao.apostas!, false, true)}
                 className="text-xs px-3 py-1.5 rounded border border-amber-500/40 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 transition-colors font-medium"
               >
-                Gerou Freebet 🎟️
+                Gerou freebet
               </button>
             </div>
           )}

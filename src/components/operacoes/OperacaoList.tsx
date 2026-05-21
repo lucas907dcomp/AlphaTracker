@@ -49,9 +49,8 @@ export function OperacaoList({ onEdit, onDelete }: Props) {
   async function handleMarcarFreebet(operacaoId: string, apostas: Aposta[], ganhouPrimeira: boolean, geradaFreebet?: boolean) {
     try {
       await marcarFreebetSePerder({ operacaoId, apostas, ganhouPrimeira, geradaFreebet })
-      if (ganhouPrimeira) toast.success('Lucro registrado!')
-      else if (geradaFreebet) toast.success('Freebet disponível para extração!')
-      else toast.success('Operação fechada.')
+      if (ganhouPrimeira) toast.success('Resultado registrado — sem freebet gerada.')
+      else if (geradaFreebet) toast.success('Freebet gerada! Disponível para extração.')
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Erro ao marcar resultado')
     }
