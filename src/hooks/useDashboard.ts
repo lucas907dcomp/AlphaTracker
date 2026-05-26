@@ -11,7 +11,7 @@ export type DashboardPeriod = 'day' | 'week' | 'month'
 function getUserPnl(op: Operacao): number {
   if (op.pnl == null) return 0
   const hasSplit =
-    (op.tipo === 'Extracao' || op.tipo === 'FreebetSePerder') &&
+    (op.tipo === 'Extracao' || op.tipo === 'FreebetSePerder' || op.tipo === 'SuperOdd' || op.tipo === 'Aposta' || op.tipo === 'TentativaDuplo') &&
     op.status === 'Concluida' &&
     op.apostas?.[0]?.casa?.parceiro != null
   if (!hasSplit) return op.pnl

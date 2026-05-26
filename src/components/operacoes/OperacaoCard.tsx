@@ -53,7 +53,7 @@ export function OperacaoCard({ operacao, onEdit, onDelete, isOrigemUtilizada = f
   const primeiraCasa = operacao.apostas?.[0]?.casa?.nome ?? null
   const parceiro = operacao.apostas?.[0]?.casa?.parceiro ?? null
 
-  const hasSplit = (operacao.tipo === 'Extracao' || operacao.tipo === 'FreebetSePerder') &&
+  const hasSplit = (operacao.tipo === 'Extracao' || operacao.tipo === 'FreebetSePerder' || operacao.tipo === 'SuperOdd' || operacao.tipo === 'Aposta' || operacao.tipo === 'TentativaDuplo') &&
     operacao.status === 'Concluida' &&
     parceiro != null &&
     operacao.pnl != null

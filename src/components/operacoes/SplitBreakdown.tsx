@@ -53,7 +53,7 @@ export function SplitBreakdown({ operacao, origem }: Props) {
   return (
     <div className="border-t border-slate-800 pt-2 space-y-1">
       <div className="flex justify-between text-xs">
-        <span className="text-slate-600 font-mono">Lucro extração</span>
+        <span className="text-slate-600 font-mono">Lucro operação</span>
         <span className={`font-mono tabular-nums ${lucroTotal >= 0 ? 'text-green-400' : 'text-red-400'}`}>
           {lucroTotal >= 0 ? '+' : ''}R${lucroTotal.toFixed(2).replace('.', ',')}
         </span>
