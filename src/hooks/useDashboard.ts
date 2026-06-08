@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import { format, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { supabase } from '@/lib/supabase'
@@ -33,6 +33,7 @@ export function useDashboard(period: DashboardPeriod, dateRange?: CustomDateRang
       if (error) throw error
       return result as Operacao[]
     },
+    placeholderData: keepPreviousData,
   })
 
   const operacoes = data ?? []
