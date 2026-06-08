@@ -2,10 +2,11 @@ import { useQuery } from '@tanstack/react-query'
 import { format, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { supabase } from '@/lib/supabase'
-import { isInPeriod } from '@/lib/dates'
+import { isInPeriod, isInDateRange } from '@/lib/dates'
 import type { Operacao } from '@/types'
 
-export type DashboardPeriod = 'day' | 'week' | 'month'
+export type DashboardPeriod = 'day' | 'week' | 'month' | 'custom'
+export type CustomDateRange = { start: string; end: string }
 
 // For operations with a partner split, return only the user's portion of pnl
 function getUserPnl(op: Operacao): number {
@@ -22,9 +23,9 @@ function getUserPnl(op: Operacao): number {
   return Math.round((op.pnl - parteParceiro) * 100) / 100
 }
 
-export function useDashboard(period: DashboardPeriod) {
+export function useDashboard(period: DashboardPeriod, dateRange?: CustomDateRange) {
   const { data, isLoading, isError } = useQuery({
-    queryKey: ['dashboard', period],
+    queryKey: ['dashboard', period, dateRange?.start, dateRange?.end],
     queryFn: async () => {
       const { data: result, error } = await supabase
         .from('operacoes')
@@ -37,7 +38,15 @@ export function useDashboard(period: DashboardPeriod) {
   const operacoes = data ?? []
   // GeradaFreebet also has a set pnl (the qualification cost) and must appear in the dashboard
   const concluidas = operacoes.filter(op => op.status === 'Concluida' || op.status === 'GeradaFreebet')
-  const concluidasInPeriod = concluidas.filter(op => isInPeriod(op.data, period))
+
+  const concluidasInPeriod = concluidas.filter(op => {
+    if (period === 'custom') {
+      if (!dateRange?.start || !dateRange?.end) return false
+      return isInDateRange(op.data, dateRange.start, dateRange.end)
+    }
+    return isInPeriod(op.data, period)
+  })
+
   const totalPnl = concluidasInPeriod.reduce((sum, op) => sum + getUserPnl(op), 0)
   const pendentesCount = operacoes.filter(op => op.status === 'Pendente').length
 

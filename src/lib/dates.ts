@@ -1,4 +1,4 @@
-import { startOfDay, startOfWeek, startOfMonth, parseISO, isAfter, isEqual } from 'date-fns'
+import { startOfDay, startOfWeek, startOfMonth, parseISO, isAfter, isEqual, isBefore } from 'date-fns'
 
 export function getStartOfDay(d: Date): Date {
   return startOfDay(d)
@@ -22,4 +22,12 @@ export function isInPeriod(operacaoDate: string, period: 'day' | 'week' | 'month
   }
   const start = starts[period]
   return isAfter(date, start) || isEqual(date, start)
+}
+
+export function isInDateRange(operacaoDate: string, start: string, end: string): boolean {
+  const date = parseISO(operacaoDate)
+  const startDate = parseISO(start)
+  const endDate = parseISO(end)
+  return (isAfter(date, startDate) || isEqual(date, startDate)) &&
+         (isBefore(date, endDate) || isEqual(date, endDate))
 }
