@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import type { DashboardPeriod, CustomDateRange } from '@/hooks/useDashboard'
 
 interface PeriodToggleProps {
@@ -15,6 +16,22 @@ const OPTIONS: { value: DashboardPeriod; label: string }[] = [
 ]
 
 export function PeriodToggle({ value, onChange, customRange, onCustomRangeChange }: PeriodToggleProps) {
+  const [localRange, setLocalRange] = useState<CustomDateRange>(customRange)
+
+  // Reset local range when switching away from custom and back
+  useEffect(() => {
+    if (value !== 'custom') setLocalRange({ start: '', end: '' })
+  }, [value])
+
+  function handleDateChange(field: 'start' | 'end', val: string) {
+    const next = { ...localRange, [field]: val }
+    setLocalRange(next)
+    // Only propagate to parent (and trigger re-filter) when both dates are complete
+    if (next.start.length === 10 && next.end.length === 10) {
+      onCustomRangeChange(next)
+    }
+  }
+
   return (
     <div className="flex flex-col items-end gap-2">
       <div className="flex gap-1 p-1 bg-slate-900 border border-slate-800 rounded-lg w-fit">
@@ -37,16 +54,16 @@ export function PeriodToggle({ value, onChange, customRange, onCustomRangeChange
         <div className="flex items-center gap-2">
           <input
             type="date"
-            value={customRange.start}
-            onChange={e => onCustomRangeChange({ ...customRange, start: e.target.value })}
+            value={localRange.start}
+            onChange={e => handleDateChange('start', e.target.value)}
             className="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-slate-300 focus:outline-none focus:border-slate-500"
           />
           <span className="text-slate-600 text-xs">→</span>
           <input
             type="date"
-            value={customRange.end}
-            min={customRange.start}
-            onChange={e => onCustomRangeChange({ ...customRange, end: e.target.value })}
+            value={localRange.end}
+            min={localRange.start}
+            onChange={e => handleDateChange('end', e.target.value)}
             className="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-slate-300 focus:outline-none focus:border-slate-500"
           />
         </div>
