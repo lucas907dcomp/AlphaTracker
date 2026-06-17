@@ -191,6 +191,14 @@ export function OperacaoForm({ onSubmit, defaultValues }: Props) {
         )}
       </div>
 
+      {/* Observações */}
+      <textarea
+        {...register('notas')}
+        placeholder="Observações (jogo, evento, detalhes...)"
+        rows={2}
+        className="w-full bg-slate-800 border border-slate-700 text-slate-100 placeholder-slate-500 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors resize-none"
+      />
+
       {/* Footer */}
       <div className="flex items-center justify-between pt-1">
         {(isFreebetSePerder || isAposta) ? (

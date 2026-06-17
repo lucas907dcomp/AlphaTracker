@@ -44,6 +44,10 @@ export function OperacaoCard({ operacao, onEdit, onDelete, isOrigemUtilizada = f
     day: '2-digit',
     month: '2-digit',
   })
+  const timeLabel = new Date(operacao.created_at).toLocaleTimeString('pt-BR', {
+    hour: '2-digit',
+    minute: '2-digit',
+  })
   const casasNomes = operacao.apostas?.map(a => a.casa?.nome ?? '?').join(', ') ?? ''
   const isPendente = operacao.status === 'Pendente'
   const isGeradaFreebet = operacao.status === 'GeradaFreebet'
@@ -144,6 +148,7 @@ export function OperacaoCard({ operacao, onEdit, onDelete, isOrigemUtilizada = f
 
         <span className="text-slate-500 text-xs truncate flex-1 min-w-0">{casasNomes}</span>
         <span className="text-slate-600 text-xs shrink-0 tabular-nums">{dateLabel}</span>
+        <span className="text-slate-700 text-xs shrink-0 tabular-nums">{timeLabel}</span>
         <span className="text-slate-700 text-xs shrink-0">{expanded ? '▲' : '▼'}</span>
       </button>
 
@@ -185,6 +190,12 @@ export function OperacaoCard({ operacao, onEdit, onDelete, isOrigemUtilizada = f
                 ))}
               </tbody>
             </table>
+          )}
+
+          {operacao.notas && (
+            <p className="text-xs text-slate-400 bg-slate-800/50 rounded px-2.5 py-1.5 whitespace-pre-wrap">
+              {operacao.notas}
+            </p>
           )}
 
           {/* Cost/split breakdown (passes origin for inline label) */}

@@ -37,6 +37,7 @@ export function useOperacoes() {
         .from('operacoes')
         .select('*, apostas(*, casa:casas(*, parceiro:parceiros(*))), operacao_origem:operacoes!operacao_origem_id(id, tipo, data, valor_freebet)')
         .order('data', { ascending: false })
+        .order('created_at', { ascending: true })
       if (error) throw error
       return result as Operacao[]
     },
