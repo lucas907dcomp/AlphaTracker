@@ -101,7 +101,7 @@ export function OperacaoForm({ onSubmit, defaultValues }: Props) {
               <CentavosInput
                 value={field.value}
                 onChange={field.onChange}
-                label={isAposta ? 'Retorno' : 'Valor Fixo'}
+                label={isAposta ? 'Retorno' : 'Retorno Bruto'}
                 placeholder="0,00"
               />
             )}

@@ -24,7 +24,7 @@ function getUserPnl(op: Operacao): number {
 }
 
 export function useDashboard(period: DashboardPeriod, dateRange?: CustomDateRange) {
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isFetching, isError } = useQuery({
     queryKey: ['dashboard', period, dateRange?.start, dateRange?.end],
     queryFn: async () => {
       const { data: result, error } = await supabase
@@ -34,6 +34,7 @@ export function useDashboard(period: DashboardPeriod, dateRange?: CustomDateRang
       return result as Operacao[]
     },
     placeholderData: keepPreviousData,
+    staleTime: 0,
   })
 
   const operacoes = data ?? []
@@ -77,5 +78,5 @@ export function useDashboard(period: DashboardPeriod, dateRange?: CustomDateRang
       .map(key => ({ label: labelMap[key], pnl: grouped[key] }))
   }
 
-  return { totalPnl, chartData, pendentesCount, isLoading, isError }
+  return { totalPnl, chartData, pendentesCount, isLoading, isFetching, isError }
 }

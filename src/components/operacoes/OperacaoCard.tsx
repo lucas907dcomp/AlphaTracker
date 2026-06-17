@@ -62,12 +62,10 @@ export function OperacaoCard({ operacao, onEdit, onDelete, isOrigemUtilizada = f
     parceiro != null &&
     operacao.pnl != null
 
-  // Show breakdown when there's a split OR when extraction has a liberation cost
   const showBreakdown = operacao.status === 'Concluida' && operacao.pnl != null && (
     hasSplit || (operacao.tipo === 'Extracao' && (operacao.custo_liberacao ?? 0) > 0)
   )
 
-  // Split amounts for header display — partner's share computed on (pnl - custo)
   const custoLiberacao = operacao.custo_liberacao ?? 0
   const lucroParaSplit = operacao.pnl != null ? operacao.pnl - custoLiberacao : 0
   const parteParceiro = hasSplit && parceiro
@@ -78,82 +76,121 @@ export function OperacaoCard({ operacao, onEdit, onDelete, isOrigemUtilizada = f
     : null
 
   return (
-    <div className={`border rounded-lg overflow-hidden transition-colors ${
+    <div className={`group border rounded-lg overflow-hidden transition-colors ${
       isPendente
-        ? 'bg-slate-900 border-yellow-500/20'
+        ? 'bg-yellow-500/[0.03] border-yellow-500/30'
         : 'bg-slate-900 border-slate-800'
     }`}>
-      <button
-        type="button"
-        className="w-full flex items-center gap-2 px-4 py-3 hover:bg-slate-800/60 transition-colors text-left"
-        onClick={() => setExpanded(e => !e)}
-      >
-        <span className={`text-xs font-mono font-bold px-1.5 py-0.5 rounded shrink-0 ${tipoBadge[operacao.tipo]}`}>
-          {tipoLabel[operacao.tipo]}
-        </span>
+      <div className="flex items-center">
+        {/* Pendente indicator strip */}
+        {isPendente && (
+          <div className="w-0.5 self-stretch bg-yellow-500/50 shrink-0" />
+        )}
 
-        {isPendente ? (
-          <span className="text-xs font-mono text-yellow-500/70 shrink-0">PEND</span>
-        ) : isGeradaFreebet ? (
-          <>
-            {operacao.pnl !== null && (
+        <button
+          type="button"
+          className="flex-1 flex items-center gap-2 px-4 py-3 hover:bg-slate-800/40 transition-colors text-left min-w-0"
+          onClick={() => setExpanded(e => !e)}
+        >
+          <span className={`text-xs font-mono font-bold px-1.5 py-0.5 rounded shrink-0 ${tipoBadge[operacao.tipo]}`}>
+            {tipoLabel[operacao.tipo]}
+          </span>
+
+          {isPendente ? (
+            <span className="text-xs font-mono font-bold text-yellow-400 bg-yellow-500/10 border border-yellow-500/30 px-1.5 py-0.5 rounded shrink-0">
+              PENDENTE
+            </span>
+          ) : isGeradaFreebet ? (
+            <>
+              {operacao.pnl !== null && (
+                <span className={`font-mono font-semibold text-sm tabular-nums shrink-0 ${operacao.pnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                  {operacao.pnl >= 0 ? '+' : ''}R${operacao.pnl.toFixed(2).replace('.', ',')}
+                </span>
+              )}
+              <span className={`text-xs font-mono px-1.5 py-0.5 rounded shrink-0 ${
+                isOrigemUtilizada
+                  ? 'bg-slate-500/15 text-slate-500 border border-slate-500/20'
+                  : statusBadge.GeradaFreebet!.className
+              }`}>
+                {isOrigemUtilizada ? 'Freebet Utilizada' : statusBadge.GeradaFreebet!.label}
+              </span>
+            </>
+          ) : hasSplit && parteUser != null && parteParceiro != null ? (
+            <>
+              <span className={`font-mono font-semibold text-sm tabular-nums shrink-0 ${parteUser >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                {parteUser >= 0 ? '+' : ''}R${parteUser.toFixed(2).replace('.', ',')}
+              </span>
+              <span className={`font-mono text-xs tabular-nums shrink-0 ${parteParceiro >= 0 ? 'text-amber-400' : 'text-red-400'}`}>
+                {parteParceiro >= 0 ? '+' : ''}R${parteParceiro.toFixed(2).replace('.', ',')} {parceiro!.nome}
+              </span>
+            </>
+          ) : (
+            operacao.pnl !== null && (
               <span className={`font-mono font-semibold text-sm tabular-nums shrink-0 ${operacao.pnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                 {operacao.pnl >= 0 ? '+' : ''}R${operacao.pnl.toFixed(2).replace('.', ',')}
               </span>
-            )}
+            )
+          )}
+
+          {operacao.tipo === 'Freebet' && operacao.valor_freebet != null && (
             <span className={`text-xs font-mono px-1.5 py-0.5 rounded shrink-0 ${
               isOrigemUtilizada
                 ? 'bg-slate-500/15 text-slate-500 border border-slate-500/20'
-                : statusBadge.GeradaFreebet!.className
+                : 'bg-amber-500/15 text-amber-400 border border-amber-500/20'
             }`}>
-              {isOrigemUtilizada ? 'Freebet Utilizada' : statusBadge.GeradaFreebet!.label}
+              {isOrigemUtilizada ? 'Freebet Utilizada' : 'Freebet Disponível'}
             </span>
-          </>
-        ) : hasSplit && parteUser != null && parteParceiro != null ? (
-          <>
-            <span className={`font-mono font-semibold text-sm tabular-nums shrink-0 ${parteUser >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-              {parteUser >= 0 ? '+' : ''}R${parteUser.toFixed(2).replace('.', ',')}
-            </span>
-            <span className={`font-mono text-xs tabular-nums shrink-0 ${parteParceiro >= 0 ? 'text-amber-400' : 'text-red-400'}`}>
-              {parteParceiro >= 0 ? '+' : ''}R${parteParceiro.toFixed(2).replace('.', ',')} {parceiro!.nome}
-            </span>
-          </>
-        ) : (
-          operacao.pnl !== null && (
-            <span className={`font-mono font-semibold text-sm tabular-nums shrink-0 ${operacao.pnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-              {operacao.pnl >= 0 ? '+' : ''}R${operacao.pnl.toFixed(2).replace('.', ',')}
-            </span>
-          )
-        )}
+          )}
 
-        {operacao.tipo === 'Freebet' && operacao.valor_freebet != null && (
-          <span className={`text-xs font-mono px-1.5 py-0.5 rounded shrink-0 ${
-            isOrigemUtilizada
-              ? 'bg-slate-500/15 text-slate-500 border border-slate-500/20'
-              : 'bg-amber-500/15 text-amber-400 border border-amber-500/20'
-          }`}>
-            {isOrigemUtilizada ? 'Freebet Utilizada' : 'Freebet Disponível'}
-          </span>
-        )}
+          {isFreebet && operacao.valor_freebet != null && primeiraCasa && (
+            operacao.tipo === 'Freebet' ||
+            isPendente ||
+            operacao.apostas?.[0]?.resultado === 'Perdeu'
+          ) && (
+            <span className="text-xs font-mono text-purple-400/70 shrink-0">
+              +R${operacao.valor_freebet.toFixed(2).replace('.', ',')} FB {primeiraCasa}
+            </span>
+          )}
 
-        {isFreebet && operacao.valor_freebet != null && primeiraCasa && (
-          operacao.tipo === 'Freebet' ||
-          isPendente ||
-          operacao.apostas?.[0]?.resultado === 'Perdeu'
-        ) && (
-          <span className="text-xs font-mono text-purple-400/70 shrink-0">
-            +R${operacao.valor_freebet.toFixed(2).replace('.', ',')} FB {primeiraCasa}
-          </span>
-        )}
+          <span className="text-slate-500 text-xs truncate flex-1 min-w-0">{casasNomes}</span>
+          <span className="text-slate-600 text-xs shrink-0 tabular-nums">{dateLabel}</span>
+          <span className="text-slate-700 text-xs shrink-0">{expanded ? '▲' : '▼'}</span>
+        </button>
 
-        <span className="text-slate-500 text-xs truncate flex-1 min-w-0">{casasNomes}</span>
-        <span className="text-slate-600 text-xs shrink-0 tabular-nums">{dateLabel}</span>
-        <span className="text-slate-700 text-xs shrink-0 tabular-nums">{timeLabel}</span>
-        <span className="text-slate-700 text-xs shrink-0">{expanded ? '▲' : '▼'}</span>
-      </button>
+        {/* Quick action buttons — visible on hover */}
+        <div className="flex items-center gap-1 pr-2 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+          <button
+            type="button"
+            title="Editar"
+            onClick={e => { e.stopPropagation(); onEdit(operacao) }}
+            className="p-1.5 text-slate-600 hover:text-slate-300 transition-colors rounded hover:bg-slate-800"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </svg>
+          </button>
+          <button
+            type="button"
+            title="Excluir"
+            onClick={e => { e.stopPropagation(); onDelete(operacao) }}
+            className="p-1.5 text-slate-600 hover:text-red-400 transition-colors rounded hover:bg-slate-800"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="3 6 5 6 21 6"/>
+              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+              <path d="M10 11v6M14 11v6"/>
+              <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+            </svg>
+          </button>
+        </div>
+      </div>
 
       {expanded && (
         <div className="border-t border-slate-800 px-4 py-3 space-y-3">
+          {/* Timestamp */}
+          <p className="text-xs text-slate-700 font-mono">Cadastrado às {timeLabel}</p>
+
           {operacao.apostas && operacao.apostas.length > 0 && (
             <table className="w-full">
               <tbody>

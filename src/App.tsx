@@ -64,7 +64,7 @@ export default function App() {
         </div>
         <button
           onClick={handleSignOut}
-          className="text-xs text-slate-500 hover:text-slate-300 transition-colors"
+          className="text-xs text-slate-500 hover:text-red-400 border border-slate-800 hover:border-red-500/30 px-2.5 py-1 rounded transition-colors"
         >
           Sair
         </button>

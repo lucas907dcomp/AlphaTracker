@@ -153,7 +153,7 @@ export default function ParceirosPage() {
     const totalSplit = operacoes
       .filter(op =>
         op.status === 'Concluida' &&
-        (op.tipo === 'Extracao' || op.tipo === 'FreebetSePerder') &&
+        (op.tipo === 'Extracao' || op.tipo === 'FreebetSePerder' || op.tipo === 'SuperOdd' || op.tipo === 'Aposta' || op.tipo === 'TentativaDuplo') &&
         op.pnl != null &&
         op.apostas?.[0]?.casa?.parceiro_id === parceiroId
       )
@@ -193,11 +193,9 @@ export default function ParceirosPage() {
   }
 
   return (
-    <div className="max-w-lg mx-auto px-4 py-8 flex flex-col gap-8">
-      <h1 className="text-xl font-bold text-slate-100">Parceiros</h1>
-
-      <form onSubmit={handleSubmit(onSubmit)} className="bg-slate-900 border border-slate-800 rounded-xl p-5 flex flex-col gap-4">
-        <h2 className="text-sm font-semibold text-slate-300 uppercase tracking-wide">Novo Parceiro</h2>
+    <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
+      <form onSubmit={handleSubmit(onSubmit)} className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col gap-4">
+        <div className="text-xs font-mono font-bold text-slate-600 uppercase tracking-widest">Novo Parceiro</div>
         <Input
           label="Nome"
           placeholder="Ex: Fábio"
@@ -220,7 +218,7 @@ export default function ParceirosPage() {
       </form>
 
       <div className="flex flex-col gap-2">
-        <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wide">Cadastrados</h2>
+        <div className="text-xs font-mono font-bold text-slate-600 uppercase tracking-widest">Cadastrados</div>
         {isLoading && <p className="text-slate-600 text-sm">Carregando...</p>}
         {!isLoading && parceiros.length === 0 && (
           <p className="text-slate-700 text-sm">Nenhum parceiro cadastrado.</p>
