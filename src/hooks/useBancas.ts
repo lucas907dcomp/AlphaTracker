@@ -19,8 +19,6 @@ export interface BancaEstado {
   // Stakes saídos e retornos recebidos desde o último snapshot
   stakesAposSnapshot: number
   retornosAposSnapshot: number
-  // Pendências ativas (apostas ainda pendentes de resultado)
-  stakesPendentes: number
   // Estimativa de saldo atual
   estimativaAtual: number | null
   // Atividade: contagem de apostas nos últimos 30 dias
@@ -125,11 +123,6 @@ export function useBancas() {
         .filter(a => a.resultado === 'Ganhou')
         .reduce((s, a) => s + a.gross_return, 0)
 
-      // Pendências: apostas sem resultado ainda (dinheiro que saiu mas retorno incerto)
-      const stakesPendentes = apostasDaCasa
-        .filter(a => a.resultado === 'Pendente')
-        .reduce((s, a) => s + a.stake, 0)
-
       // Estimativa: saldo base + retornos recebidos - stakes saídos
       const estimativaAtual = ultimaBanca != null
         ? Math.round((ultimaBanca.saldo + retornosAposSnapshot - stakesAposSnapshot) * 100) / 100
@@ -154,7 +147,6 @@ export function useBancas() {
         diasSemAtualizar,
         stakesAposSnapshot,
         retornosAposSnapshot,
-        stakesPendentes,
         estimativaAtual,
         opsRecentes,
         urgenciaScore,

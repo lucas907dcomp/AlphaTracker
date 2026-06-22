@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
 import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, LabelList,
 } from 'recharts'
 import { useBancas, type BancaEstado } from '@/hooks/useBancas'
 import { CentavosInput } from '@/components/ui/CentavosInput'
@@ -138,11 +138,6 @@ function CasaCard({
             </div>
           )}
 
-          {estado.stakesPendentes > 0 && (
-            <div className="text-xs font-mono text-yellow-600/80">
-              R$ {fmt(estado.stakesPendentes)} em apostas pendentes
-            </div>
-          )}
         </div>
       ) : (
         <p className="text-xs text-slate-600 font-mono">
@@ -200,7 +195,7 @@ function BancasBarChart({ estados }: { estados: BancaEstado[] }) {
         <BarChart
           data={data}
           layout="vertical"
-          margin={{ top: 0, right: 8, left: 4, bottom: 0 }}
+          margin={{ top: 0, right: 80, left: 4, bottom: 0 }}
         >
           <XAxis
             type="number"
@@ -227,6 +222,12 @@ function BancasBarChart({ estados }: { estados: BancaEstado[] }) {
             {data.map((entry, i) => (
               <Cell key={i} fill={COR_BAR[entry.corStatus]} fillOpacity={0.85} />
             ))}
+            <LabelList
+              dataKey="valor"
+              position="right"
+              style={{ fill: '#94a3b8', fontSize: 11, fontFamily: 'monospace' }}
+              formatter={(v: number) => `R$ ${fmt(v)}`}
+            />
           </Bar>
         </BarChart>
       </ResponsiveContainer>
