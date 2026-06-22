@@ -169,6 +169,8 @@ function CasaCard({
 
 // ── Gráfico de barras de banca por casa ──────────────────────────────────────
 function BancasBarChart({ estados }: { estados: BancaEstado[] }) {
+  const [open, setOpen] = useState(false)
+
   const data = estados
     .filter(e => e.ultimaBanca !== null)
     .map(e => ({
@@ -181,10 +183,19 @@ function BancasBarChart({ estados }: { estados: BancaEstado[] }) {
   if (data.length === 0) return null
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
-      <p className="text-[10px] font-mono font-bold text-slate-600 uppercase tracking-widest mb-3">
-        Distribuição por casa
-      </p>
+    <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+      <button
+        onClick={() => setOpen(v => !v)}
+        className="w-full flex items-center justify-between px-4 py-3 hover:bg-slate-800/50 transition-colors"
+      >
+        <span className="text-[10px] font-mono font-bold text-slate-600 uppercase tracking-widest">
+          Distribuição por casa
+        </span>
+        <span className="text-slate-600 text-xs">{open ? '▲' : '▼'}</span>
+      </button>
+
+      {open && (
+      <div className="px-4 pb-4">
       <ResponsiveContainer width="100%" height={Math.max(160, data.length * 36)}>
         <BarChart
           data={data}
@@ -219,6 +230,8 @@ function BancasBarChart({ estados }: { estados: BancaEstado[] }) {
           </Bar>
         </BarChart>
       </ResponsiveContainer>
+      </div>
+      )}
     </div>
   )
 }
