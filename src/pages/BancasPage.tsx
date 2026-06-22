@@ -1,5 +1,8 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
+import {
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
+} from 'recharts'
 import { useBancas, type BancaEstado } from '@/hooks/useBancas'
 import { CentavosInput } from '@/components/ui/CentavosInput'
 import { Button } from '@/components/ui/Button'
@@ -21,7 +24,13 @@ const COR_DOT: Record<BancaEstado['corStatus'], string> = {
   red: 'bg-red-500',
 }
 
-// Inline form para atualizar saldo de uma casa
+const COR_BAR: Record<BancaEstado['corStatus'], string> = {
+  green: '#4ade80',
+  yellow: '#facc15',
+  red: '#f87171',
+}
+
+// ── Inline form para atualizar saldo ──────────────────────────────────────────
 function AtualizarSaldoForm({
   estado,
   onSave,
@@ -48,17 +57,8 @@ function AtualizarSaldoForm({
 
   return (
     <div className="mt-3 pt-3 border-t border-slate-800 flex items-center gap-2">
-      <CentavosInput
-        value={saldo}
-        onChange={setSaldo}
-        placeholder="0,00"
-      />
-      <Button
-        onClick={handleSave}
-        disabled={saving || saldo == null}
-        loading={saving}
-        className="shrink-0"
-      >
+      <CentavosInput value={saldo} onChange={setSaldo} placeholder="0,00" />
+      <Button onClick={handleSave} disabled={saving || saldo == null} loading={saving} className="shrink-0">
         Salvar
       </Button>
       <button
@@ -71,7 +71,7 @@ function AtualizarSaldoForm({
   )
 }
 
-// Card de uma casa
+// ── Card individual de casa ───────────────────────────────────────────────────
 function CasaCard({
   estado,
   onSave,
@@ -80,24 +80,17 @@ function CasaCard({
   onSave: (casaId: string, saldo: number) => Promise<void>
 }) {
   const [editando, setEditando] = useState(false)
-
   const hasMovimento = estado.stakesAposSnapshot > 0 || estado.retornosAposSnapshot > 0
-
-  async function handleSave(saldo: number) {
-    await onSave(estado.casa.id, saldo)
-    setEditando(false)
-  }
 
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-2">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className={`w-2 h-2 rounded-full shrink-0 ${COR_DOT[estado.corStatus]}`} />
           <span className="font-medium text-slate-100 text-sm">{estado.casa.nome}</span>
           {estado.opsRecentes > 0 && (
             <span className="text-[10px] font-mono text-slate-500">
-              {estado.opsRecentes === 1 ? '⚡ 1 op' : `⚡ ${estado.opsRecentes} ops`} /30d
+              ⚡ {estado.opsRecentes} op{estado.opsRecentes !== 1 ? 's' : ''} /30d
             </span>
           )}
         </div>
@@ -111,7 +104,6 @@ function CasaCard({
         )}
       </div>
 
-      {/* Dados */}
       {estado.ultimaBanca ? (
         <div className="space-y-1">
           <div className="flex items-baseline gap-2">
@@ -139,9 +131,7 @@ function CasaCard({
           {estado.estimativaAtual !== null && hasMovimento && (
             <div className="flex items-center gap-1.5">
               <span className="text-xs font-mono text-slate-600">Estimativa atual:</span>
-              <span className={`text-sm font-mono font-bold tabular-nums ${
-                estado.estimativaAtual >= 0 ? 'text-slate-200' : 'text-red-400'
-              }`}>
+              <span className={`text-sm font-mono font-bold tabular-nums ${estado.estimativaAtual >= 0 ? 'text-slate-200' : 'text-red-400'}`}>
                 ~R$ {fmt(estado.estimativaAtual)}
               </span>
               <span className="text-[10px] text-slate-700 font-mono">(imprecisa)</span>
@@ -166,7 +156,10 @@ function CasaCard({
       {editando && (
         <AtualizarSaldoForm
           estado={estado}
-          onSave={handleSave}
+          onSave={async (saldo) => {
+            await onSave(estado.casa.id, saldo)
+            setEditando(false)
+          }}
           onCancel={() => setEditando(false)}
         />
       )}
@@ -174,9 +167,116 @@ function CasaCard({
   )
 }
 
-// Modal Modo Contagem
+// ── Gráfico de barras de banca por casa ──────────────────────────────────────
+function BancasBarChart({ estados }: { estados: BancaEstado[] }) {
+  const data = estados
+    .filter(e => e.ultimaBanca !== null)
+    .map(e => ({
+      nome: e.casa.nome,
+      valor: e.estimativaAtual ?? e.ultimaBanca!.saldo,
+      corStatus: e.corStatus,
+    }))
+    .sort((a, b) => b.valor - a.valor)
+
+  if (data.length === 0) return null
+
+  return (
+    <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+      <p className="text-[10px] font-mono font-bold text-slate-600 uppercase tracking-widest mb-3">
+        Distribuição por casa
+      </p>
+      <ResponsiveContainer width="100%" height={Math.max(160, data.length * 36)}>
+        <BarChart
+          data={data}
+          layout="vertical"
+          margin={{ top: 0, right: 8, left: 4, bottom: 0 }}
+        >
+          <XAxis
+            type="number"
+            tick={{ fill: '#475569', fontSize: 11 }}
+            axisLine={false}
+            tickLine={false}
+            tickFormatter={v => `R$${(v as number).toFixed(0)}`}
+          />
+          <YAxis
+            type="category"
+            dataKey="nome"
+            tick={{ fill: '#94a3b8', fontSize: 12 }}
+            axisLine={false}
+            tickLine={false}
+            width={80}
+          />
+          <Tooltip
+            contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8 }}
+            labelStyle={{ color: '#94a3b8', fontSize: 12 }}
+            itemStyle={{ color: '#e2e8f0', fontSize: 12 }}
+            formatter={(v) => [`R$ ${fmt(v as number)}`, 'Estimativa']}
+          />
+          <Bar dataKey="valor" radius={[0, 3, 3, 0]}>
+            {data.map((entry, i) => (
+              <Cell key={i} fill={COR_BAR[entry.corStatus]} fillOpacity={0.85} />
+            ))}
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  )
+}
+
+// ── Card de resumo total ──────────────────────────────────────────────────────
+function ResumoBancas({ estados }: { estados: BancaEstado[] }) {
+  const comRegistro = estados.filter(e => e.ultimaBanca !== null)
+  const semRegistro = estados.filter(e => e.ultimaBanca === null)
+
+  const totalEstimativa = comRegistro.reduce(
+    (sum, e) => sum + (e.estimativaAtual ?? e.ultimaBanca!.saldo),
+    0
+  )
+  const totalRegistrado = comRegistro.reduce(
+    (sum, e) => sum + e.ultimaBanca!.saldo,
+    0
+  )
+  const hasEstimativa = comRegistro.some(e => e.estimativaAtual !== null && e.estimativaAtual !== e.ultimaBanca?.saldo)
+
+  if (comRegistro.length === 0) return null
+
+  return (
+    <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3">
+      <p className="text-[10px] font-mono font-bold text-slate-600 uppercase tracking-widest">
+        Resumo de bancas
+      </p>
+      <div className="flex flex-wrap gap-6">
+        <div>
+          <p className="text-xs font-mono text-slate-500 mb-0.5">
+            {hasEstimativa ? 'Total estimado' : 'Total registrado'}
+          </p>
+          <p className="text-2xl font-mono font-bold text-slate-100 tabular-nums">
+            R$ {fmt(totalEstimativa)}
+          </p>
+          {hasEstimativa && (
+            <p className="text-[11px] font-mono text-slate-600">
+              registrado: R$ {fmt(totalRegistrado)}
+            </p>
+          )}
+        </div>
+        <div className="flex flex-col justify-center gap-1">
+          <p className="text-xs font-mono text-slate-500">
+            <span className="text-slate-300">{comRegistro.length}</span> casa{comRegistro.length !== 1 ? 's' : ''} registrada{comRegistro.length !== 1 ? 's' : ''}
+          </p>
+          {semRegistro.length > 0 && (
+            <p className="text-xs font-mono text-yellow-600/80">
+              {semRegistro.length} sem registro
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Modal Modo Contagem ───────────────────────────────────────────────────────
 function ModoContagem({
-  estados,
+  estados: estadosParam,
   onSave,
   onClose,
 }: {
@@ -184,18 +284,22 @@ function ModoContagem({
   onSave: (casaId: string, saldo: number) => Promise<void>
   onClose: () => void
 }) {
+  // Congela a lista na abertura — saves invalidam queries e reordenam o array,
+  // o que faria o idx apontar para uma casa diferente após cada save.
+  const [estados] = useState(() => [...estadosParam])
   const [idx, setIdx] = useState(0)
   const [saldo, setSaldo] = useState<number | null | undefined>(undefined)
   const [saving, setSaving] = useState(false)
-  const [saved, setSaved] = useState(new Set<string>())
+  const [savedCount, setSavedCount] = useState(0)
 
   const current = estados[idx]
+
   if (!current) {
     return (
       <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-sm w-full space-y-4 text-center">
           <p className="text-green-400 font-mono text-sm font-bold">✓ Contagem concluída!</p>
-          <p className="text-slate-400 text-sm">{saved.size} casa(s) atualizada(s).</p>
+          <p className="text-slate-400 text-sm">{savedCount} casa{savedCount !== 1 ? 's' : ''} atualizada{savedCount !== 1 ? 's' : ''}.</p>
           <Button onClick={onClose}>Fechar</Button>
         </div>
       </div>
@@ -207,7 +311,7 @@ function ModoContagem({
     setSaving(true)
     try {
       await onSave(current.casa.id, saldo)
-      setSaved(prev => new Set(prev).add(current.casa.id))
+      setSavedCount(c => c + 1)
       advance()
     } finally {
       setSaving(false)
@@ -222,7 +326,6 @@ function ModoContagem({
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-sm w-full space-y-4">
-        {/* Header */}
         <div className="flex items-center justify-between">
           <span className="text-xs font-mono font-bold text-slate-600 uppercase tracking-widest">
             Modo Contagem
@@ -232,18 +335,16 @@ function ModoContagem({
           </span>
         </div>
 
-        {/* Progress bar */}
         <div className="h-1 bg-slate-800 rounded-full overflow-hidden">
           <div
-            className="h-full bg-blue-600 transition-all"
-            style={{ width: `${((idx) / estados.length) * 100}%` }}
+            className="h-full bg-blue-600 transition-all duration-300"
+            style={{ width: `${(idx / estados.length) * 100}%` }}
           />
         </div>
 
-        {/* Casa atual */}
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <span className={`w-2 h-2 rounded-full ${COR_DOT[current.corStatus]}`} />
+            <span className={`w-2 h-2 rounded-full shrink-0 ${COR_DOT[current.corStatus]}`} />
             <span className="font-medium text-slate-100">{current.casa.nome}</span>
           </div>
           {current.ultimaBanca && (
@@ -251,26 +352,20 @@ function ModoContagem({
               Último registro: R$ {fmt(current.ultimaBanca.saldo)} ({diasLabel(current.diasSemAtualizar)})
             </p>
           )}
-          {current.estimativaAtual !== null && current.ultimaBanca && (
+          {current.estimativaAtual !== null && current.ultimaBanca && current.estimativaAtual !== current.ultimaBanca.saldo && (
             <p className="text-xs font-mono text-slate-600">
               Estimativa: ~R$ {fmt(current.estimativaAtual)}
             </p>
           )}
         </div>
 
-        {/* Input */}
         <div>
           <label className="text-xs font-mono text-slate-500 uppercase tracking-wide block mb-1.5">
             Saldo atual
           </label>
-          <CentavosInput
-            value={saldo}
-            onChange={setSaldo}
-            placeholder="0,00"
-          />
+          <CentavosInput value={saldo} onChange={setSaldo} placeholder="0,00" />
         </div>
 
-        {/* Actions */}
         <div className="flex gap-2">
           <Button
             onClick={handleSave}
@@ -299,6 +394,7 @@ function ModoContagem({
   )
 }
 
+// ── Página principal ──────────────────────────────────────────────────────────
 export default function BancasPage() {
   const { estadosPorCasa, isLoading, saveBanca } = useBancas()
   const [modoContagem, setModoContagem] = useState(false)
@@ -341,21 +437,27 @@ export default function BancasPage() {
         )}
       </div>
 
+      {/* Resumo total */}
+      <ResumoBancas estados={estadosPorCasa} />
+
+      {/* Gráfico */}
+      <BancasBarChart estados={estadosPorCasa} />
+
       {/* Legenda */}
       <div className="flex items-center gap-4 text-[10px] font-mono text-slate-600">
         <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500 inline-block" /> {'<'} 7 dias</span>
         <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-yellow-500 inline-block" /> 7–14 dias</span>
-        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500 inline-block" /> {'>'}14 dias / nunca</span>
+        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500 inline-block" /> {'>'} 14 dias / nunca</span>
       </div>
 
-      {/* Aviso sobre estimativas */}
+      {/* Aviso estimativas */}
       <div className="bg-slate-900/50 border border-slate-800/50 rounded-lg px-3 py-2">
         <p className="text-[11px] font-mono text-slate-600">
-          As estimativas são calculadas a partir dos stakes saídos e retornos confirmados (apostas com resultado). Apostas pendentes não entram no cálculo de estimativa.
+          Estimativas calculadas a partir dos stakes saídos e retornos confirmados. Apostas pendentes não entram no cálculo.
         </p>
       </div>
 
-      {/* Cards */}
+      {/* Cards por casa */}
       {estadosPorCasa.length === 0 ? (
         <p className="text-slate-600 text-sm font-mono">Nenhuma casa ativa cadastrada.</p>
       ) : (
