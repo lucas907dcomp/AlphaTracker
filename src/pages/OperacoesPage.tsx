@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { OperacaoList } from '@/components/operacoes/OperacaoList'
-import { OperacaoForm } from '@/components/operacoes/OperacaoForm'
+import { OperacaoForm, type ImportedStakes } from '@/components/operacoes/OperacaoForm'
 import { EditOperacaoModal } from '@/components/operacoes/EditOperacaoModal'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { useOperacoes } from '@/hooks/useOperacoes'
@@ -14,6 +14,7 @@ export default function OperacoesPage() {
   const [deleteTarget, setDeleteTarget] = useState<Operacao | null>(null)
   const [editTarget, setEditTarget] = useState<Operacao | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [importedStakes, setImportedStakes] = useState<ImportedStakes | undefined>()
   const { createOperacao, deleteOperacao } = useOperacoes()
 
   async function handleCreate(data: OperacaoFormData) {
@@ -21,6 +22,7 @@ export default function OperacoesPage() {
       await createOperacao(data)
       toast.success('Operação salva!')
       setFormKey(k => k + 1)
+      setImportedStakes(undefined)
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Erro ao salvar operação')
     }
@@ -40,16 +42,23 @@ export default function OperacoesPage() {
     }
   }
 
+  function handleUseStakes(stakes: number[]) {
+    setImportedStakes(prev => ({ stakes, version: (prev?.version ?? 0) + 1 }))
+    // Scroll to top so user sees the form being filled
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+    toast.info('Stakes copiados para o formulário')
+  }
+
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
         <div className="text-xs font-mono font-bold text-slate-600 uppercase tracking-widest mb-3">
           Nova Operação
         </div>
-        <OperacaoForm key={formKey} onSubmit={handleCreate} />
+        <OperacaoForm key={formKey} onSubmit={handleCreate} importedStakes={importedStakes} />
       </div>
 
-      <Calculadora />
+      <Calculadora onUseStakes={handleUseStakes} />
 
       <div>
         <div className="text-xs font-mono font-bold text-slate-600 uppercase tracking-widest mb-3">

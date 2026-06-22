@@ -36,7 +36,11 @@ function onlyDigits(s: string): string {
   return s.replace(/\D/g, '')
 }
 
-export function Calculadora() {
+interface CalculadoraProps {
+  onUseStakes?: (stakes: number[]) => void
+}
+
+export function Calculadora({ onUseStakes }: CalculadoraProps) {
   const [open, setOpen] = useState(false)
   const [tipo, setTipo] = useState<TipoCalc>('padrao')
   const [col1Digits, setCol1Digits] = useState('')
@@ -297,7 +301,7 @@ export function Calculadora() {
 
       {/* Summary */}
       {calc.target1 > 0 && (
-        <div className="border-t border-slate-800 pt-2 space-y-1">
+        <div className="border-t border-slate-800 pt-2 space-y-2">
           {tipo === 'fspd' ? (
             <>
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
@@ -337,6 +341,16 @@ export function Calculadora() {
                 {calc.pnl >= 0 ? '+' : '-'}R${fmt(Math.abs(calc.pnl))}
               </span>
             </div>
+          )}
+
+          {onUseStakes && calc.stakes.some(s => s > 0) && (
+            <button
+              type="button"
+              onClick={() => onUseStakes(calc.stakes.map(s => Math.round(s * 100) / 100))}
+              className="text-xs font-mono text-blue-400 hover:text-blue-300 border border-blue-800 hover:border-blue-600 px-2.5 py-1 rounded transition-colors"
+            >
+              Usar no formulário →
+            </button>
           )}
         </div>
       )}

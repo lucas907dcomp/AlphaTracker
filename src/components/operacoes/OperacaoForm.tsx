@@ -10,6 +10,8 @@ import { Button } from '@/components/ui/Button'
 import { Select } from '@/components/ui/Select'
 import { CentavosInput } from '@/components/ui/CentavosInput'
 
+export type ImportedStakes = { stakes: number[]; version: number }
+
 const TIPO_OPTIONS = [
   { value: 'Extracao', label: 'Extração' },
   { value: 'Freebet', label: 'Freebet' },
@@ -29,9 +31,10 @@ const emptyLeg = { casaId: '', stake: 0, isFreebet: false, isDoubleGreen: false 
 interface Props {
   onSubmit: (data: OperacaoFormData) => Promise<void>
   defaultValues?: Partial<OperacaoFormData>
+  importedStakes?: ImportedStakes
 }
 
-export function OperacaoForm({ onSubmit, defaultValues }: Props) {
+export function OperacaoForm({ onSubmit, defaultValues, importedStakes }: Props) {
   const { casas } = useCasas()
   const {
     control,
@@ -63,6 +66,19 @@ export function OperacaoForm({ onSubmit, defaultValues }: Props) {
       for (let i = fields.length - 1; i > 0; i--) remove(i)
     }
   }, [isAposta]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Apply stakes imported from calculator
+  useEffect(() => {
+    if (!importedStakes) return
+    const { stakes } = importedStakes
+    // Append legs if calculator has more columns than current legs
+    const diff = stakes.length - fields.length
+    for (let i = 0; i < diff; i++) append(emptyLeg)
+    // Set stake values (setValue works on internal store, safe to call right after append)
+    stakes.forEach((stake, i) => {
+      setValue(`legs.${i}.stake`, stake, { shouldValidate: false })
+    })
+  }, [importedStakes?.version]) // eslint-disable-line react-hooks/exhaustive-deps
 
 
   return (

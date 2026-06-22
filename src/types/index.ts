@@ -76,3 +76,11 @@ export interface CenarioPnL {
   casaNome: string
   pnl: number
 }
+
+export interface CasaBanca {
+  id: string
+  user_id: string
+  casa_id: string
+  saldo: number
+  created_at: string
+}

@@ -7,6 +7,7 @@ import OperacoesPage from '@/pages/OperacoesPage'
 
 const DashboardPage = lazy(() => import('@/pages/DashboardPage'))
 const ParceirosPage = lazy(() => import('@/pages/ParceirosPage'))
+const BancasPage = lazy(() => import('@/pages/BancasPage'))
 
 export const router = createBrowserRouter([
   {
@@ -39,6 +40,14 @@ export const router = createBrowserRouter([
       },
       { path: '/operacoes', element: <OperacoesPage /> },
       { path: '/operacoes/nova', element: <Navigate to="/operacoes" replace /> },
+      {
+        path: '/bancas',
+        element: (
+          <Suspense fallback={<div className="p-4 text-slate-600 text-sm">Carregando...</div>}>
+            <BancasPage />
+          </Suspense>
+        ),
+      },
     ],
   },
 ])

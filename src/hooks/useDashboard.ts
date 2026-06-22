@@ -1,14 +1,18 @@
+import { useMemo } from 'react'
 import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import { format, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { supabase } from '@/lib/supabase'
 import { isInPeriod, isInDateRange } from '@/lib/dates'
-import type { Operacao } from '@/types'
+import type { Operacao, OperacaoTipo } from '@/types'
 
 export type DashboardPeriod = 'day' | 'week' | 'month' | 'custom'
 export type CustomDateRange = { start: string; end: string }
+export type DashboardFilters = {
+  tipos: OperacaoTipo[]
+  casaIds: string[]
+}
 
-// For operations with a partner split, return only the user's portion of pnl
 function getUserPnl(op: Operacao): number {
   if (op.pnl == null) return 0
   const hasSplit =
@@ -23,7 +27,11 @@ function getUserPnl(op: Operacao): number {
   return Math.round((op.pnl - parteParceiro) * 100) / 100
 }
 
-export function useDashboard(period: DashboardPeriod, dateRange?: CustomDateRange) {
+export function useDashboard(
+  period: DashboardPeriod,
+  dateRange?: CustomDateRange,
+  filters?: DashboardFilters,
+) {
   const { data, isLoading, isFetching, isError } = useQuery({
     queryKey: ['dashboard', period, dateRange?.start, dateRange?.end],
     queryFn: async () => {
@@ -38,7 +46,18 @@ export function useDashboard(period: DashboardPeriod, dateRange?: CustomDateRang
   })
 
   const operacoes = data ?? []
-  // GeradaFreebet also has a set pnl (the qualification cost) and must appear in the dashboard
+
+  // All unique casas seen in any operation (for filter UI)
+  const availableCasas = useMemo(() => {
+    const casaMap = new Map<string, { id: string; nome: string }>()
+    for (const op of operacoes) {
+      for (const a of op.apostas ?? []) {
+        if (a.casa) casaMap.set(a.casa.id, { id: a.casa.id, nome: a.casa.nome })
+      }
+    }
+    return Array.from(casaMap.values()).sort((a, b) => a.nome.localeCompare(b.nome))
+  }, [operacoes])
+
   const concluidas = operacoes.filter(op => op.status === 'Concluida' || op.status === 'GeradaFreebet')
 
   const concluidasInPeriod = concluidas.filter(op => {
@@ -49,13 +68,22 @@ export function useDashboard(period: DashboardPeriod, dateRange?: CustomDateRang
     return isInPeriod(op.data, period)
   })
 
-  const totalPnl = concluidasInPeriod.reduce((sum, op) => sum + getUserPnl(op), 0)
+  const filtered = concluidasInPeriod.filter(op => {
+    if (filters?.tipos.length && !filters.tipos.includes(op.tipo)) return false
+    if (filters?.casaIds.length) {
+      const opCasaIds = op.apostas?.map(a => a.casa_id) ?? []
+      if (!opCasaIds.some(id => filters.casaIds.includes(id))) return false
+    }
+    return true
+  })
+
+  const totalPnl = filtered.reduce((sum, op) => sum + getUserPnl(op), 0)
   const pendentesCount = operacoes.filter(op => op.status === 'Pendente').length
 
   let chartData: { label: string; pnl: number }[] = []
 
   if (period === 'day') {
-    chartData = concluidasInPeriod.map(op => ({
+    chartData = filtered.map(op => ({
       label: op.tipo,
       pnl: getUserPnl(op),
     }))
@@ -64,7 +92,7 @@ export function useDashboard(period: DashboardPeriod, dateRange?: CustomDateRang
     const labelMap: Record<string, string> = {}
     const labelFormat = period === 'week' ? 'EEE' : 'dd/MM'
 
-    for (const op of concluidasInPeriod) {
+    for (const op of filtered) {
       const key = op.data
       grouped[key] = (grouped[key] ?? 0) + getUserPnl(op)
       labelMap[key] =
@@ -78,5 +106,5 @@ export function useDashboard(period: DashboardPeriod, dateRange?: CustomDateRang
       .map(key => ({ label: labelMap[key], pnl: grouped[key] }))
   }
 
-  return { totalPnl, chartData, pendentesCount, isLoading, isFetching, isError }
+  return { totalPnl, chartData, pendentesCount, availableCasas, isLoading, isFetching, isError }
 }
