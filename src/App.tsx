@@ -1,5 +1,16 @@
 import { Navigate, Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
+import { useFreebetsDisponiveis } from '@/hooks/useFreebetsDisponiveis'
+
+function FreebetsBadge() {
+  const { data: freebets = [] } = useFreebetsDisponiveis()
+  if (freebets.length === 0) return null
+  return (
+    <span className="ml-0.5 bg-amber-500 text-slate-900 text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none align-middle">
+      {freebets.length}
+    </span>
+  )
+}
 
 export default function App() {
   const { session, loading, signOut } = useAuth()
@@ -39,7 +50,7 @@ export default function App() {
               }`
             }
           >
-            Operações
+            Operações<FreebetsBadge />
           </NavLink>
           <NavLink
             to="/casas"

@@ -21,12 +21,12 @@ const TIPO_OPTIONS = [
   { value: 'Aposta', label: 'Aposta' },
 ]
 
-function getLocalDateString(): string {
+export function getLocalDateString(): string {
   const d = new Date()
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
-const emptyLeg = { casaId: '', stake: 0, isFreebet: false, isDoubleGreen: false }
+export const emptyLeg = { casaId: '', stake: 0, isFreebet: false, isDoubleGreen: false }
 
 interface Props {
   onSubmit: (data: OperacaoFormData) => Promise<void>
