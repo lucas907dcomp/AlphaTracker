@@ -91,6 +91,7 @@ export function useOperacoes() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['operacoes'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+      queryClient.invalidateQueries({ queryKey: ['freebets-disponiveis'] })
     },
   })
 
@@ -102,6 +103,7 @@ export function useOperacoes() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['operacoes'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+      queryClient.invalidateQueries({ queryKey: ['freebets-disponiveis'] })
     },
   })
 
@@ -148,6 +150,7 @@ export function useOperacoes() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['operacoes'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+      queryClient.invalidateQueries({ queryKey: ['freebets-disponiveis'] })
     },
   })
 
@@ -198,6 +201,7 @@ export function useOperacoes() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['operacoes'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+      queryClient.invalidateQueries({ queryKey: ['freebets-disponiveis'] })
     },
   })
 
@@ -222,6 +226,7 @@ export function useOperacoes() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['operacoes'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+      queryClient.invalidateQueries({ queryKey: ['freebets-disponiveis'] })
     },
   })
 
@@ -259,6 +264,7 @@ export function useOperacoes() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['operacoes'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+      queryClient.invalidateQueries({ queryKey: ['freebets-disponiveis'] })
     },
   })
 
