@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 
-type TipoCalc = 'padrao' | 'freebet' | 'fspd'
+type TipoCalc = 'padrao' | 'fspd'
 
 function fmt(n: number): string {
   return n.toFixed(2).replace('.', ',')
@@ -8,20 +8,6 @@ function fmt(n: number): string {
 
 function parseNum(s: string): number {
   return parseFloat(s.replace(',', '.')) || 0
-}
-
-interface CalcResult {
-  tipo: TipoCalc
-  target1: number
-  stakes: number[]
-  // padrão / freebet
-  totalStakes: number
-  pnl: number
-  // fspd only
-  lucroDesejado?: number
-  budgetOthers?: number
-  targetOthers?: number
-  pnlOther?: number
 }
 
 function digitsToDisplay(digits: string): string {
@@ -36,107 +22,160 @@ function onlyDigits(s: string): string {
   return s.replace(/\D/g, '')
 }
 
+interface ColConfig {
+  isLay: boolean
+  isFreebet: boolean
+  commission: string
+}
+
+interface ColResult {
+  stake: number      // back stake OR lay stake (aposta a favor)
+  liability: number  // lay: stake*(odd-1); back: same as stake
+  retorno: number    // gross return shown in retorno row
+  isLay: boolean
+  isFreebet: boolean
+}
+
+interface CalcResult {
+  tipo: TipoCalc
+  target: number
+  cols: ColResult[]
+  totalCost: number
+  pnl: number
+  lucroDesejado?: number
+  budgetOthers?: number
+  targetOthers?: number
+  pnlOther?: number
+}
+
 interface CalculadoraProps {
   onUseStakes?: (stakes: number[]) => void
 }
 
+const DEFAULT_CONFIG: ColConfig = { isLay: false, isFreebet: false, commission: '2.0' }
+
 export function Calculadora({ onUseStakes }: CalculadoraProps) {
   const [open, setOpen] = useState(false)
   const [tipo, setTipo] = useState<TipoCalc>('padrao')
-  const [col1Digits, setCol1Digits] = useState('')
+  const [col0Digits, setCol0Digits] = useState('')
   const [odds, setOdds] = useState<string[]>(['', '', ''])
+  const [configs, setConfigs] = useState<ColConfig[]>([
+    { isLay: false, isFreebet: false, commission: '2.0' },
+    { isLay: false, isFreebet: false, commission: '2.0' },
+    { isLay: false, isFreebet: false, commission: '2.0' },
+  ])
   const [lucroDigits, setLucroDigits] = useState('')
 
   const calc = useMemo((): CalcResult => {
-    const s1 = digitsToValue(col1Digits)
-    const o1 = parseNum(odds[0])
+    const s0 = digitsToValue(col0Digits)
+    const o0 = parseNum(odds[0])
+    const fb0 = configs[0]?.isFreebet ?? false
 
     if (tipo === 'padrao') {
-      const target1 = s1 * o1
-      const stakes = odds.map((odd, i) => {
-        if (i === 0) return s1
+      const target = fb0 ? s0 * (o0 - 1) : s0 * o0
+
+      const cols: ColResult[] = odds.map((odd, i) => {
+        const cfg = configs[i] ?? DEFAULT_CONFIG
         const o = parseNum(odd)
-        return target1 > 0 && o > 0 ? target1 / o : 0
+
+        if (i === 0) {
+          return { stake: s0, liability: s0, retorno: target, isLay: false, isFreebet: fb0 }
+        }
+
+        if (cfg.isLay) {
+          const c = parseNum(cfg.commission) / 100
+          const denom = o - c
+          const layStake = target > 0 && o > 0 && denom > 0 ? target / denom : 0
+          const liability = layStake > 0 ? Math.round(layStake * (o - 1) * 100) / 100 : 0
+          const ls = Math.round(layStake * 100) / 100
+          return { stake: ls, liability, retorno: ls, isLay: true, isFreebet: false }
+        }
+
+        const backStake = target > 0 && o > 0 ? target / o : 0
+        return {
+          stake: Math.round(backStake * 100) / 100,
+          liability: Math.round(backStake * 100) / 100,
+          retorno: target,
+          isLay: false,
+          isFreebet: cfg.isFreebet,
+        }
       })
-      const totalStakes = stakes.reduce((a, b) => a + b, 0)
-      return { tipo, target1, stakes, totalStakes, pnl: target1 > 0 ? target1 - totalStakes : 0 }
+
+      const totalCost = cols.reduce((sum, col) => {
+        if (col.isFreebet) return sum
+        return sum + (col.isLay ? col.liability : col.stake)
+      }, 0)
+
+      return { tipo, target, cols, totalCost, pnl: target > 0 ? target - totalCost : 0 }
     }
 
-    if (tipo === 'freebet') {
-      const target1 = s1 * (o1 - 1)
-      const stakes = odds.map((odd, i) => {
-        if (i === 0) return s1
-        const o = parseNum(odd)
-        return target1 > 0 && o > 0 ? target1 / o : 0
-      })
-      const totalStakes = stakes.slice(1).reduce((a, b) => a + b, 0)
-      return { tipo, target1, stakes, totalStakes, pnl: target1 > 0 ? target1 - totalStakes : 0 }
-    }
-
-    // fspd: col1 is real money (not freebet), target1 = s1 × odd1
+    // fspd
     const lucroDesejado = digitsToValue(lucroDigits)
-    const target1 = s1 * o1
-    // budget for other casas = what's left after paying back s1 and desired profit
-    const budgetOthers = target1 - s1 - lucroDesejado
+    const target = s0 * o0
+    const budgetOthers = target - s0 - lucroDesejado
 
-    if (target1 <= 0 || budgetOthers <= 0) {
-      return { tipo, target1, stakes: odds.map(() => 0), totalStakes: 0, pnl: 0, lucroDesejado, budgetOthers: 0, targetOthers: 0, pnlOther: 0 }
+    if (target <= 0 || budgetOthers <= 0) {
+      return {
+        tipo, target, totalCost: 0, pnl: 0,
+        cols: odds.map((_, i) => ({ stake: i === 0 ? s0 : 0, liability: i === 0 ? s0 : 0, retorno: 0, isLay: false, isFreebet: false })),
+        lucroDesejado, budgetOthers: 0, targetOthers: 0, pnlOther: 0,
+      }
     }
 
     const sumInvOdds = odds.slice(1).reduce((sum, odd) => {
       const o = parseNum(odd)
       return o > 0 ? sum + 1 / o : sum
     }, 0)
-
     const targetOthers = sumInvOdds > 0 ? budgetOthers / sumInvOdds : 0
-    const stakes = odds.map((odd, i) => {
-      if (i === 0) return s1
+
+    const cols: ColResult[] = odds.map((odd, i) => {
+      if (i === 0) return { stake: s0, liability: s0, retorno: target, isLay: false, isFreebet: false }
       const o = parseNum(odd)
-      return targetOthers > 0 && o > 0 ? targetOthers / o : 0
+      const bs = targetOthers > 0 && o > 0 ? Math.round((targetOthers / o) * 100) / 100 : 0
+      return { stake: bs, liability: bs, retorno: targetOthers, isLay: false, isFreebet: false }
     })
 
     return {
-      tipo,
-      target1,
-      stakes,
-      totalStakes: s1 + budgetOthers,
-      pnl: lucroDesejado,
-      lucroDesejado,
-      budgetOthers,
-      targetOthers,
-      // when others win: col1 bet is lost (-s1) + net from others
-      pnlOther: Math.round((targetOthers - budgetOthers - s1) * 100) / 100,
+      tipo, target, cols, totalCost: s0 + budgetOthers, pnl: lucroDesejado,
+      lucroDesejado, budgetOthers, targetOthers,
+      pnlOther: Math.round((targetOthers - budgetOthers - s0) * 100) / 100,
     }
-  }, [col1Digits, odds, tipo, lucroDigits])
+  }, [col0Digits, odds, configs, tipo, lucroDigits])
 
   function setOdd(i: number, v: string) {
     setOdds(prev => prev.map((o, idx) => idx === i ? v : o))
   }
 
+  function setConfig(i: number, patch: Partial<ColConfig>) {
+    setConfigs(prev => prev.map((c, idx) => idx === i ? { ...c, ...patch } : c))
+  }
+
   function addCol() {
     setOdds(prev => [...prev, ''])
+    setConfigs(prev => [...prev, { ...DEFAULT_CONFIG }])
   }
 
   function removeCol(i: number) {
     if (odds.length <= 2) return
     setOdds(prev => prev.filter((_, idx) => idx !== i))
+    setConfigs(prev => prev.filter((_, idx) => idx !== i))
   }
 
   function switchTipo(t: TipoCalc) {
     setTipo(t)
-    setCol1Digits('')
+    setCol0Digits('')
     setLucroDigits('')
+    if (t === 'fspd') {
+      setConfigs(prev => prev.map(c => ({ ...c, isLay: false })))
+    }
   }
 
-  const col1Label = tipo === 'freebet' ? 'Freebet' : 'Apostado'
-  const isFree = tipo === 'freebet'
+  // Export: for lay cols → liability; for back cols → stake
+  const exportStakes = calc.cols.map(col =>
+    Math.round((col.isLay ? col.liability : col.stake) * 100) / 100
+  )
 
-  // Retorno row: for col1 on fspd it's target1; for freebet it's target1 (= fb×(odd-1)); for padrão all same
-  function getRetorno(i: number): number {
-    if (i === 0) return calc.target1
-    if (tipo === 'fspd') return calc.targetOthers ?? 0
-    return calc.target1
-  }
+  const hasAnyLay = configs.some((c, i) => i > 0 && c.isLay)
 
   if (!open) {
     return (
@@ -159,11 +198,7 @@ export function Calculadora({ onUseStakes }: CalculadoraProps) {
             Calculadora
           </span>
           <div className="flex gap-1">
-            {([
-              ['padrao', 'Padrão'],
-              ['freebet', 'Freebet'],
-              ['fspd', 'FB se Perder'],
-            ] as [TipoCalc, string][]).map(([t, label]) => (
+            {([['padrao', 'Padrão'], ['fspd', 'FB se Perder']] as [TipoCalc, string][]).map(([t, label]) => (
               <button
                 key={t}
                 type="button"
@@ -188,7 +223,7 @@ export function Calculadora({ onUseStakes }: CalculadoraProps) {
         </button>
       </div>
 
-      {/* Lucro desejado input (fspd only) */}
+      {/* Lucro desejado (fspd only) */}
       {tipo === 'fspd' && (
         <div className="flex items-center gap-2">
           <span className="text-xs font-mono text-slate-500 whitespace-nowrap">
@@ -208,15 +243,24 @@ export function Calculadora({ onUseStakes }: CalculadoraProps) {
       {/* Grid */}
       <div className="overflow-x-auto">
         <div className="flex gap-2 pb-1" style={{ minWidth: 'max-content' }}>
+
           {/* Row labels */}
           <div className="flex flex-col gap-1 pt-6 shrink-0">
             <div className="h-9 flex items-center pr-3">
               <span className="text-xs font-mono text-slate-600 uppercase tracking-wide whitespace-nowrap">
-                {col1Label}
+                Aposta
               </span>
             </div>
+            {hasAnyLay && (
+              <div className="h-4 flex items-center pr-3">
+                <span className="text-[10px] font-mono text-slate-700 whitespace-nowrap">A favor</span>
+              </div>
+            )}
             <div className="h-9 flex items-center pr-3">
               <span className="text-xs font-mono text-slate-600 uppercase tracking-wide">Odd</span>
+            </div>
+            <div className="h-7 flex items-center pr-3">
+              <span className="text-xs font-mono text-slate-600 uppercase tracking-wide whitespace-nowrap">Comis.</span>
             </div>
             <div className="h-9 flex items-center pr-3">
               <span className="text-xs font-mono text-slate-600 uppercase tracking-wide">Retorno</span>
@@ -224,67 +268,144 @@ export function Calculadora({ onUseStakes }: CalculadoraProps) {
           </div>
 
           {/* Columns */}
-          {odds.map((odd, i) => (
-            <div key={i} className="flex flex-col gap-1 w-28 shrink-0">
-              {/* Column header */}
-              <div className="h-6 flex items-center justify-between">
-                <span className="text-xs font-mono text-slate-500">
-                  Casa {i + 1}
-                  {isFree && i === 0 && (
-                    <span className="ml-1 text-[10px] text-purple-400">FB</span>
-                  )}
-                </span>
-                {i >= 2 && (
-                  <button
-                    type="button"
-                    onClick={() => removeCol(i)}
-                    className="text-slate-700 hover:text-red-400 text-base leading-none transition-colors"
-                  >
-                    ×
-                  </button>
-                )}
-              </div>
+          {odds.map((odd, i) => {
+            const cfg = configs[i] ?? DEFAULT_CONFIG
+            const col = calc.cols[i] ?? { stake: 0, liability: 0, retorno: 0, isLay: false, isFreebet: false }
+            const isLay = i > 0 && cfg.isLay
+            const isFb = !isLay && cfg.isFreebet
 
-              {/* Stake / FB input (col1) or auto display (col2+) */}
-              {i === 0 ? (
+            return (
+              <div key={i} className="flex flex-col gap-1 w-28 shrink-0">
+                {/* Column header */}
+                <div className="h-6 flex items-center justify-between gap-0.5">
+                  <span className="text-xs font-mono text-slate-500 shrink-0">
+                    Casa {i + 1}
+                  </span>
+                  <div className="flex items-center gap-0.5">
+                    {/* LAY toggle (col1+ only, not available in fspd) */}
+                    {i > 0 && tipo === 'padrao' && (
+                      <button
+                        type="button"
+                        onClick={() => setConfig(i, { isLay: !cfg.isLay, isFreebet: false })}
+                        className={`text-[10px] font-mono px-1 py-0.5 rounded border transition-colors leading-none ${
+                          isLay
+                            ? 'bg-orange-600 text-white border-orange-600'
+                            : 'text-slate-600 border-slate-700 hover:text-slate-400'
+                        }`}
+                      >
+                        LAY
+                      </button>
+                    )}
+                    {/* FB toggle (back bets only) */}
+                    {!isLay && (
+                      <button
+                        type="button"
+                        onClick={() => setConfig(i, { isFreebet: !cfg.isFreebet })}
+                        className={`text-[10px] font-mono px-1 py-0.5 rounded border transition-colors leading-none ${
+                          isFb
+                            ? 'bg-purple-600 text-white border-purple-600'
+                            : 'text-slate-600 border-slate-700 hover:text-slate-400'
+                        }`}
+                      >
+                        FB
+                      </button>
+                    )}
+                    {i >= 2 && (
+                      <button
+                        type="button"
+                        onClick={() => removeCol(i)}
+                        className="text-slate-700 hover:text-red-400 text-base leading-none transition-colors ml-0.5"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Stake row: editable for col0, display for col1+ */}
+                {i === 0 ? (
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={digitsToDisplay(col0Digits)}
+                    onChange={e => setCol0Digits(onlyDigits(e.target.value))}
+                    placeholder="0,00"
+                    className="h-9 w-full bg-slate-800 border border-slate-700 text-slate-100 placeholder-slate-600 rounded px-2 text-sm font-mono text-right focus:outline-none focus:border-blue-500 transition-colors"
+                  />
+                ) : (
+                  <div className={`h-9 w-full rounded px-2 flex items-center justify-end text-sm font-mono tabular-nums ${
+                    isLay
+                      ? 'bg-orange-950/30 border border-orange-900/40 text-orange-300'
+                      : 'bg-slate-800/40 border border-slate-800 text-slate-300'
+                  }`}>
+                    {isLay
+                      ? (col.liability > 0 ? fmt(col.liability) : <span className="text-slate-600">—</span>)
+                      : (col.stake > 0 ? fmt(col.stake) : <span className="text-slate-600">—</span>)
+                    }
+                  </div>
+                )}
+
+                {/* Lay stake sub-info row (only when any lay column exists) */}
+                {hasAnyLay && (
+                  <div className="h-4 flex items-center justify-end">
+                    {isLay && col.stake > 0 && (
+                      <span className="text-[10px] font-mono text-orange-500/60 tabular-nums">
+                        {fmt(col.stake)}
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {/* Odd input */}
                 <input
                   type="text"
-                  inputMode="numeric"
-                  value={digitsToDisplay(col1Digits)}
-                  onChange={e => setCol1Digits(onlyDigits(e.target.value))}
-                  placeholder="0,00"
-                  className="h-9 w-full bg-slate-800 border border-slate-700 text-slate-100 placeholder-slate-600 rounded px-2 text-sm font-mono text-right focus:outline-none focus:border-blue-500 transition-colors"
+                  inputMode="decimal"
+                  value={odd}
+                  onChange={e => setOdd(i, e.target.value)}
+                  placeholder={isLay ? 'Lay' : '0.00'}
+                  className={`h-9 w-full bg-slate-800 border rounded px-2 text-sm font-mono text-right focus:outline-none transition-colors placeholder-slate-600 text-slate-100 ${
+                    isLay
+                      ? 'border-orange-900/50 focus:border-orange-500'
+                      : 'border-slate-700 focus:border-blue-500'
+                  }`}
                 />
-              ) : (
-                <div className="h-9 w-full bg-slate-800/40 border border-slate-800 rounded px-2 flex items-center justify-end text-sm font-mono text-slate-300 tabular-nums">
-                  {calc.stakes[i] > 0
-                    ? fmt(calc.stakes[i])
-                    : <span className="text-slate-600">—</span>}
+
+                {/* Commission row (lay: input; back: spacer) */}
+                <div className="h-7 flex items-center">
+                  {isLay ? (
+                    <div className="flex items-center gap-1 w-full">
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        value={cfg.commission}
+                        onChange={e => setConfig(i, { commission: e.target.value })}
+                        placeholder="2.0"
+                        className="flex-1 h-7 bg-slate-800 border border-orange-900/50 text-orange-300 placeholder-slate-600 rounded px-2 text-xs font-mono text-right focus:outline-none focus:border-orange-500 transition-colors"
+                      />
+                      <span className="text-[10px] text-slate-500 shrink-0">%</span>
+                    </div>
+                  ) : (
+                    <div className="h-7 w-full" />
+                  )}
                 </div>
-              )}
 
-              {/* Odd input */}
-              <input
-                type="text"
-                inputMode="decimal"
-                value={odd}
-                onChange={e => setOdd(i, e.target.value)}
-                placeholder="0.00"
-                className="h-9 w-full bg-slate-800 border border-slate-700 text-slate-100 placeholder-slate-600 rounded px-2 text-sm font-mono text-right focus:outline-none focus:border-blue-500 transition-colors"
-              />
-
-              {/* Return display */}
-              <div className="h-9 w-full bg-slate-800/40 border border-slate-800 rounded px-2 flex items-center justify-end text-sm font-mono text-slate-400 tabular-nums">
-                {getRetorno(i) > 0
-                  ? fmt(getRetorno(i))
-                  : <span className="text-slate-600">—</span>}
+                {/* Retorno row */}
+                <div className={`h-9 w-full rounded px-2 flex items-center justify-end text-sm font-mono tabular-nums ${
+                  isLay ? 'text-orange-400/70' : 'text-slate-400'
+                } bg-slate-800/40 border border-slate-800`}>
+                  {isLay
+                    ? (col.stake > 0 ? fmt(col.stake) : <span className="text-slate-600">—</span>)
+                    : (col.retorno > 0 ? fmt(col.retorno) : <span className="text-slate-600">—</span>)
+                  }
+                </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
 
           {/* Add column */}
           <div className="flex flex-col gap-1 pt-6 shrink-0 pl-1">
             <div className="h-9" />
+            {hasAnyLay && <div className="h-4" />}
             <div className="h-9 flex items-center">
               <button
                 type="button"
@@ -294,13 +415,14 @@ export function Calculadora({ onUseStakes }: CalculadoraProps) {
                 + casa
               </button>
             </div>
+            <div className="h-7" />
             <div className="h-9" />
           </div>
         </div>
       </div>
 
       {/* Summary */}
-      {calc.target1 > 0 && (
+      {calc.target > 0 && (
         <div className="border-t border-slate-800 pt-2 space-y-2">
           {tipo === 'fspd' ? (
             <>
@@ -315,9 +437,9 @@ export function Calculadora({ onUseStakes }: CalculadoraProps) {
                 <span className={`text-sm font-mono font-bold tabular-nums ${(calc.pnlOther ?? 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                   {(calc.pnlOther ?? 0) >= 0 ? '+' : '-'}R${fmt(Math.abs(calc.pnlOther ?? 0))}
                 </span>
-                {calc.totalStakes > 0 && (
+                {calc.totalCost > 0 && (
                   <span className="text-xs font-mono text-slate-600">
-                    apostado: R${fmt(calc.totalStakes)}
+                    apostado: R${fmt(calc.totalCost)}
                   </span>
                 )}
               </div>
@@ -325,16 +447,27 @@ export function Calculadora({ onUseStakes }: CalculadoraProps) {
           ) : (
             <div className="flex flex-wrap items-center gap-x-5 gap-y-1">
               <span className="text-xs font-mono text-slate-500">
-                Retorno: <span className="text-slate-300 tabular-nums">R${fmt(calc.target1)}</span>
+                Retorno: <span className="text-slate-300 tabular-nums">R${fmt(calc.target)}</span>
               </span>
-              {tipo === 'freebet' ? (
+              {hasAnyLay ? (
                 <span className="text-xs font-mono text-slate-500">
-                  Apostado: <span className="text-slate-300 tabular-nums">R${fmt(calc.totalStakes)}</span>
+                  Back: <span className="text-slate-300 tabular-nums">R${fmt(
+                    calc.cols.reduce((s, c) => !c.isLay && !c.isFreebet ? s + c.stake : s, 0)
+                  )}</span>
+                  {calc.cols.some(c => c.isLay) && (
+                    <> · Resp: <span className="text-orange-300 tabular-nums">R${fmt(
+                      calc.cols.reduce((s, c) => c.isLay ? s + c.liability : s, 0)
+                    )}</span></>
+                  )}
+                </span>
+              ) : configs[0]?.isFreebet ? (
+                <span className="text-xs font-mono text-slate-500">
+                  Apostado: <span className="text-slate-300 tabular-nums">R${fmt(calc.totalCost)}</span>
                   <span className="text-slate-600 ml-1">(FB grátis)</span>
                 </span>
               ) : (
                 <span className="text-xs font-mono text-slate-500">
-                  Total apostado: <span className="text-slate-300 tabular-nums">R${fmt(calc.totalStakes)}</span>
+                  Total apostado: <span className="text-slate-300 tabular-nums">R${fmt(calc.totalCost)}</span>
                 </span>
               )}
               <span className={`text-sm font-mono font-bold tabular-nums ${calc.pnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
@@ -343,10 +476,10 @@ export function Calculadora({ onUseStakes }: CalculadoraProps) {
             </div>
           )}
 
-          {onUseStakes && calc.stakes.some(s => s > 0) && (
+          {onUseStakes && exportStakes.some(s => s > 0) && (
             <button
               type="button"
-              onClick={() => onUseStakes(calc.stakes.map(s => Math.round(s * 100) / 100))}
+              onClick={() => onUseStakes(exportStakes)}
               className="text-xs font-mono text-blue-400 hover:text-blue-300 border border-blue-800 hover:border-blue-600 px-2.5 py-1 rounded transition-colors"
             >
               Usar no formulário →
