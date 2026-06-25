@@ -22,6 +22,12 @@ function onlyDigits(s: string): string {
   return s.replace(/\D/g, '')
 }
 
+// Effective back odd after exchange commission: 1 + (odd-1)*(1-c%)
+function effectiveBackOdd(odd: number, commPct: number): number {
+  if (commPct <= 0) return odd
+  return 1 + (odd - 1) * (1 - commPct / 100)
+}
+
 interface ColConfig {
   isLay: boolean
   isFreebet: boolean
@@ -31,7 +37,7 @@ interface ColConfig {
 interface ColResult {
   stake: number      // back stake OR lay stake (aposta a favor)
   liability: number  // lay: stake*(odd-1); back: same as stake
-  retorno: number    // gross return shown in retorno row
+  retorno: number    // net return if this col wins
   isLay: boolean
   isFreebet: boolean
 }
@@ -52,7 +58,7 @@ interface CalculadoraProps {
   onUseStakes?: (stakes: number[]) => void
 }
 
-const DEFAULT_CONFIG: ColConfig = { isLay: false, isFreebet: false, commission: '2.0' }
+const DEFAULT_CONFIG: ColConfig = { isLay: false, isFreebet: false, commission: '0' }
 
 export function Calculadora({ onUseStakes }: CalculadoraProps) {
   const [open, setOpen] = useState(false)
@@ -60,9 +66,9 @@ export function Calculadora({ onUseStakes }: CalculadoraProps) {
   const [col0Digits, setCol0Digits] = useState('')
   const [odds, setOdds] = useState<string[]>(['', '', ''])
   const [configs, setConfigs] = useState<ColConfig[]>([
-    { isLay: false, isFreebet: false, commission: '2.0' },
-    { isLay: false, isFreebet: false, commission: '2.0' },
-    { isLay: false, isFreebet: false, commission: '2.0' },
+    { isLay: false, isFreebet: false, commission: '0' },
+    { isLay: false, isFreebet: false, commission: '0' },
+    { isLay: false, isFreebet: false, commission: '0' },
   ])
   const [lucroDigits, setLucroDigits] = useState('')
 
@@ -70,20 +76,26 @@ export function Calculadora({ onUseStakes }: CalculadoraProps) {
     const s0 = digitsToValue(col0Digits)
     const o0 = parseNum(odds[0])
     const fb0 = configs[0]?.isFreebet ?? false
+    const c0 = parseNum(configs[0]?.commission ?? '0')
 
     if (tipo === 'padrao') {
-      const target = fb0 ? s0 * (o0 - 1) : s0 * o0
+      const eo0 = effectiveBackOdd(o0, c0)
+      // Target = net return when col0 wins
+      const target = fb0
+        ? s0 * (o0 - 1) * (1 - c0 / 100)  // freebet: net profit only (stake is free)
+        : s0 * eo0                            // back: stake × effective odd
 
       const cols: ColResult[] = odds.map((odd, i) => {
         const cfg = configs[i] ?? DEFAULT_CONFIG
         const o = parseNum(odd)
+        const ci = parseNum(cfg.commission)
 
         if (i === 0) {
           return { stake: s0, liability: s0, retorno: target, isLay: false, isFreebet: fb0 }
         }
 
         if (cfg.isLay) {
-          const c = parseNum(cfg.commission) / 100
+          const c = ci / 100
           const denom = o - c
           const layStake = target > 0 && o > 0 && denom > 0 ? target / denom : 0
           const liability = layStake > 0 ? Math.round(layStake * (o - 1) * 100) / 100 : 0
@@ -91,7 +103,9 @@ export function Calculadora({ onUseStakes }: CalculadoraProps) {
           return { stake: ls, liability, retorno: ls, isLay: true, isFreebet: false }
         }
 
-        const backStake = target > 0 && o > 0 ? target / o : 0
+        // Back bet (possibly exchange with commission)
+        const eoi = effectiveBackOdd(o, ci)
+        const backStake = target > 0 && eoi > 0 ? target / eoi : 0
         return {
           stake: Math.round(backStake * 100) / 100,
           liability: Math.round(backStake * 100) / 100,
@@ -150,6 +164,17 @@ export function Calculadora({ onUseStakes }: CalculadoraProps) {
     setConfigs(prev => prev.map((c, idx) => idx === i ? { ...c, ...patch } : c))
   }
 
+  function toggleLay(i: number) {
+    const cfg = configs[i]
+    const newIsLay = !cfg.isLay
+    setConfig(i, {
+      isLay: newIsLay,
+      isFreebet: false,
+      // Auto-fill 2.5% when activating lay if commission was 0
+      commission: newIsLay && parseNum(cfg.commission) === 0 ? '2.5' : cfg.commission,
+    })
+  }
+
   function addCol() {
     setOdds(prev => [...prev, ''])
     setConfigs(prev => [...prev, { ...DEFAULT_CONFIG }])
@@ -170,7 +195,7 @@ export function Calculadora({ onUseStakes }: CalculadoraProps) {
     }
   }
 
-  // Export: for lay cols → liability; for back cols → stake
+  // Export: lay cols → liability; back cols → stake
   const exportStakes = calc.cols.map(col =>
     Math.round((col.isLay ? col.liability : col.stake) * 100) / 100
   )
@@ -273,6 +298,7 @@ export function Calculadora({ onUseStakes }: CalculadoraProps) {
             const col = calc.cols[i] ?? { stake: 0, liability: 0, retorno: 0, isLay: false, isFreebet: false }
             const isLay = i > 0 && cfg.isLay
             const isFb = !isLay && cfg.isFreebet
+            const hasComm = parseNum(cfg.commission) > 0
 
             return (
               <div key={i} className="flex flex-col gap-1 w-28 shrink-0">
@@ -282,11 +308,11 @@ export function Calculadora({ onUseStakes }: CalculadoraProps) {
                     Casa {i + 1}
                   </span>
                   <div className="flex items-center gap-0.5">
-                    {/* LAY toggle (col1+ only, not available in fspd) */}
+                    {/* LAY toggle (col1+ only, padrao only) */}
                     {i > 0 && tipo === 'padrao' && (
                       <button
                         type="button"
-                        onClick={() => setConfig(i, { isLay: !cfg.isLay, isFreebet: false })}
+                        onClick={() => toggleLay(i)}
                         className={`text-[10px] font-mono px-1 py-0.5 rounded border transition-colors leading-none ${
                           isLay
                             ? 'bg-orange-600 text-white border-orange-600'
@@ -322,7 +348,7 @@ export function Calculadora({ onUseStakes }: CalculadoraProps) {
                   </div>
                 </div>
 
-                {/* Stake row: editable for col0, display for col1+ */}
+                {/* Stake row */}
                 {i === 0 ? (
                   <input
                     type="text"
@@ -345,7 +371,7 @@ export function Calculadora({ onUseStakes }: CalculadoraProps) {
                   </div>
                 )}
 
-                {/* Lay stake sub-info row (only when any lay column exists) */}
+                {/* Lay stake sub-info (a favor) — only when any lay col exists */}
                 {hasAnyLay && (
                   <div className="h-4 flex items-center justify-end">
                     {isLay && col.stake > 0 && (
@@ -370,29 +396,33 @@ export function Calculadora({ onUseStakes }: CalculadoraProps) {
                   }`}
                 />
 
-                {/* Commission row (lay: input; back: spacer) */}
-                <div className="h-7 flex items-center">
-                  {isLay ? (
-                    <div className="flex items-center gap-1 w-full">
-                      <input
-                        type="text"
-                        inputMode="decimal"
-                        value={cfg.commission}
-                        onChange={e => setConfig(i, { commission: e.target.value })}
-                        placeholder="2.0"
-                        className="flex-1 h-7 bg-slate-800 border border-orange-900/50 text-orange-300 placeholder-slate-600 rounded px-2 text-xs font-mono text-right focus:outline-none focus:border-orange-500 transition-colors"
-                      />
-                      <span className="text-[10px] text-slate-500 shrink-0">%</span>
-                    </div>
-                  ) : (
-                    <div className="h-7 w-full" />
-                  )}
-                </div>
+                {/* Commission row — always visible in padrao, spacer in fspd */}
+                {tipo === 'padrao' ? (
+                  <div className="h-7 flex items-center gap-1">
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      value={cfg.commission}
+                      onChange={e => setConfig(i, { commission: e.target.value })}
+                      placeholder="0"
+                      className={`w-full h-7 bg-slate-800 rounded px-2 text-xs font-mono text-right focus:outline-none transition-colors placeholder-slate-600 border ${
+                        isLay
+                          ? 'border-orange-900/50 text-orange-300 focus:border-orange-500'
+                          : hasComm
+                            ? 'border-slate-600 text-slate-300 focus:border-slate-500'
+                            : 'border-slate-800 text-slate-500 focus:border-slate-600'
+                      }`}
+                    />
+                    <span className="text-[10px] text-slate-600 shrink-0">%</span>
+                  </div>
+                ) : (
+                  <div className="h-7" />
+                )}
 
                 {/* Retorno row */}
-                <div className={`h-9 w-full rounded px-2 flex items-center justify-end text-sm font-mono tabular-nums ${
+                <div className={`h-9 w-full rounded px-2 flex items-center justify-end text-sm font-mono tabular-nums bg-slate-800/40 border border-slate-800 ${
                   isLay ? 'text-orange-400/70' : 'text-slate-400'
-                } bg-slate-800/40 border border-slate-800`}>
+                }`}>
                   {isLay
                     ? (col.stake > 0 ? fmt(col.stake) : <span className="text-slate-600">—</span>)
                     : (col.retorno > 0 ? fmt(col.retorno) : <span className="text-slate-600">—</span>)
